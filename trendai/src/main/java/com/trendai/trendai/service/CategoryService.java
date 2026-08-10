@@ -1,5 +1,6 @@
 package com.trendai.trendai.service;
 
+import com.trendai.trendai.exception.BusinessException;
 import com.trendai.trendai.dto.CategoryResponse;
 import com.trendai.trendai.dto.CreateCategoryRequest;
 import com.trendai.trendai.dto.UpdateCategoryRequest;
@@ -27,7 +28,17 @@ public class CategoryService {
 
     public CategoryResponse createCategory(CreateCategoryRequest request) {
 
-        Category category = categoryMapper.toEntity(request);
+        String categoryName = request.getName().trim();
+
+        if (categoryRepository.existsByName(categoryName)) {
+            throw new BusinessException("Category already exists");
+        }
+
+        CreateCategoryRequest cleanedRequest = new CreateCategoryRequest();
+        cleanedRequest.setName(categoryName);
+        cleanedRequest.setDescription(request.getDescription());
+
+        Category category = categoryMapper.toEntity(cleanedRequest);
 
         Category savedCategory = categoryRepository.save(category);
 
@@ -55,7 +66,19 @@ public class CategoryService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        categoryMapper.updateEntity(category, request);
+        String categoryName = request.getName().trim();
+
+        if (!category.getName().equals(categoryName)
+                && categoryRepository.existsByName(categoryName)) {
+
+            throw new BusinessException("Category already exists");
+        }
+
+        UpdateCategoryRequest cleanedRequest = new UpdateCategoryRequest();
+        cleanedRequest.setName(categoryName);
+        cleanedRequest.setDescription(request.getDescription());
+
+        categoryMapper.updateEntity(category, cleanedRequest);
 
         Category updatedCategory = categoryRepository.save(category);
 
