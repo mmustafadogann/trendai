@@ -6,6 +6,7 @@ import com.trendai.trendai.entity.Category;
 import com.trendai.trendai.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
 import com.trendai.trendai.exception.ResourceNotFoundException;
+import com.trendai.trendai.dto.UpdateCategoryRequest;
 
 import java.util.List;
 
@@ -58,6 +59,25 @@ public class CategoryService {
         response.setId(category.getId());
         response.setName(category.getName());
         response.setDescription(category.getDescription());
+
+        return response;
+    }
+
+    public CategoryResponse updateCategory(Long id, UpdateCategoryRequest request) {
+
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        category.setName(request.getName());
+        category.setDescription(request.getDescription());
+
+        Category updatedCategory = categoryRepository.save(category);
+
+        CategoryResponse response = new CategoryResponse();
+
+        response.setId(updatedCategory.getId());
+        response.setName(updatedCategory.getName());
+        response.setDescription(updatedCategory.getDescription());
 
         return response;
     }

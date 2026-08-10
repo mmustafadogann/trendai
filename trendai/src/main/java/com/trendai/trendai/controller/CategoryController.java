@@ -2,6 +2,7 @@ package com.trendai.trendai.controller;
 
 import com.trendai.trendai.dto.CategoryResponse;
 import com.trendai.trendai.dto.CreateCategoryRequest;
+import com.trendai.trendai.dto.UpdateCategoryRequest;
 import com.trendai.trendai.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -32,4 +33,13 @@ public class CategoryController {
     public CategoryResponse getCategoryById(@PathVariable Long id) {
         return categoryService.getCategoryById(id);
     }
+
+    @PutMapping("/{id}")
+    public CategoryResponse updateCategory(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateCategoryRequest request) {
+
+        return categoryService.updateCategory(id, request);
+    }
+
 }
