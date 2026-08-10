@@ -2,14 +2,15 @@ package com.trendai.trendai.service;
 
 import com.trendai.trendai.dto.CreateProductRequest;
 import com.trendai.trendai.dto.ProductResponse;
+import com.trendai.trendai.dto.UpdateProductRequest;
 import com.trendai.trendai.entity.Category;
 import com.trendai.trendai.entity.Product;
 import com.trendai.trendai.exception.ResourceNotFoundException;
+import com.trendai.trendai.mapper.ProductMapper;
 import com.trendai.trendai.repository.CategoryRepository;
 import com.trendai.trendai.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -17,12 +18,16 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductMapper productMapper;
 
-    public ProductService(ProductRepository productRepository,
-                          CategoryRepository categoryRepository) {
+    public ProductService(
+            ProductRepository productRepository,
+            CategoryRepository categoryRepository,
+            ProductMapper productMapper) {
 
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.productMapper = productMapper;
     }
 
     public ProductResponse createProduct(CreateProductRequest request) {
@@ -30,58 +35,21 @@ public class ProductService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        // DTO -> Entity (Manual Mapping)
-        Product product = new Product();
+        Product product = productMapper.toEntity(request);
 
-        product.setName(request.getName());
-        product.setDescription(request.getDescription());
-        product.setBrand(request.getBrand());
-        product.setColor(request.getColor());
-        product.setPrice(request.getPrice());
-        product.setStock(request.getStock());
-        product.setImageUrl(request.getImageUrl());
-        product.setCreatedAt(LocalDateTime.now());
         product.setCategory(category);
 
         Product savedProduct = productRepository.save(product);
 
-        // Entity -> DTO (Manual Mapping)
-        ProductResponse response = new ProductResponse();
-
-        response.setId(savedProduct.getId());
-        response.setName(savedProduct.getName());
-        response.setDescription(savedProduct.getDescription());
-        response.setBrand(savedProduct.getBrand());
-        response.setColor(savedProduct.getColor());
-        response.setPrice(savedProduct.getPrice());
-        response.setStock(savedProduct.getStock());
-        response.setImageUrl(savedProduct.getImageUrl());
-        response.setCreatedAt(savedProduct.getCreatedAt());
-        response.setCategoryName(savedProduct.getCategory().getName());
-
-        return response;
+        return productMapper.toResponse(savedProduct);
     }
 
     public List<ProductResponse> getAllProducts() {
 
-        return productRepository.findAll().stream().map(product -> {
-
-            ProductResponse response = new ProductResponse();
-
-            response.setId(product.getId());
-            response.setName(product.getName());
-            response.setDescription(product.getDescription());
-            response.setBrand(product.getBrand());
-            response.setColor(product.getColor());
-            response.setPrice(product.getPrice());
-            response.setStock(product.getStock());
-            response.setImageUrl(product.getImageUrl());
-            response.setCreatedAt(product.getCreatedAt());
-            response.setCategoryName(product.getCategory().getName());
-
-            return response;
-
-        }).toList();
+        return productRepository.findAll()
+                .stream()
+                .map(productMapper::toResponse)
+                .toList();
     }
 
     public ProductResponse getProductById(Long id) {
@@ -89,19 +57,35 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        ProductResponse response = new ProductResponse();
+        return productMapper.toResponse(product);
+    }
 
-        response.setId(product.getId());
-        response.setName(product.getName());
-        response.setDescription(product.getDescription());
-        response.setBrand(product.getBrand());
-        response.setColor(product.getColor());
-        response.setPrice(product.getPrice());
-        response.setStock(product.getStock());
-        response.setImageUrl(product.getImageUrl());
-        response.setCreatedAt(product.getCreatedAt());
-        response.setCategoryName(product.getCategory().getName());
+    public ProductResponse updateProduct(
+            Long id,
+            UpdateProductRequest request) {
 
-        return response;
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        productMapper.updateEntity(product, request);
+
+        product.setCategory(category);
+
+        Product updatedProduct = productRepository.save(product);
+
+        return productMapper.toResponse(updatedProduct);
+    }
+
+    public void deleteProduct(Long id) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        product.setActive(false);
+
+        productRepository.save(product);
     }
 }

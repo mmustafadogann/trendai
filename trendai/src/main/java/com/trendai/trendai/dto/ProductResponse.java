@@ -26,7 +26,13 @@ public class ProductResponse {
 
     private String imageUrl;
 
+    private Boolean active;
+
     private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
+    private Long categoryId;
 
     private String categoryName;
 }
