@@ -5,6 +5,7 @@ import com.trendai.trendai.dto.CreateCategoryRequest;
 import com.trendai.trendai.dto.UpdateCategoryRequest;
 import com.trendai.trendai.service.CategoryService;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,17 +21,21 @@ public class CategoryController {
     }
 
     @PostMapping
-    public CategoryResponse createCategory(@Valid @RequestBody CreateCategoryRequest request) {
+    public CategoryResponse createCategory(
+            @Valid @RequestBody CreateCategoryRequest request) {
+
         return categoryService.createCategory(request);
     }
 
     @GetMapping
     public List<CategoryResponse> getAllCategories() {
+
         return categoryService.getAllCategories();
     }
 
     @GetMapping("/{id}")
     public CategoryResponse getCategoryById(@PathVariable Long id) {
+
         return categoryService.getCategoryById(id);
     }
 
@@ -42,4 +47,11 @@ public class CategoryController {
         return categoryService.updateCategory(id, request);
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+
+        categoryService.deleteCategory(id);
+
+        return ResponseEntity.noContent().build();
+    }
 }
