@@ -1,14 +1,15 @@
 package com.trendai.trendai.service;
 
-import com.trendai.trendai.exception.BusinessException;
 import com.trendai.trendai.dto.CategoryResponse;
 import com.trendai.trendai.dto.CreateCategoryRequest;
 import com.trendai.trendai.dto.UpdateCategoryRequest;
 import com.trendai.trendai.entity.Category;
+import com.trendai.trendai.exception.BusinessException;
 import com.trendai.trendai.exception.ResourceNotFoundException;
-import com.trendai.trendai.repository.CategoryRepository;
-import org.springframework.stereotype.Service;
 import com.trendai.trendai.mapper.CategoryMapper;
+import com.trendai.trendai.repository.CategoryRepository;
+import com.trendai.trendai.repository.ProductRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -17,13 +18,16 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
+    private final ProductRepository productRepository;
 
     public CategoryService(
             CategoryRepository categoryRepository,
-            CategoryMapper categoryMapper) {
+            CategoryMapper categoryMapper,
+            ProductRepository productRepository) {
 
         this.categoryRepository = categoryRepository;
         this.categoryMapper = categoryMapper;
+        this.productRepository = productRepository;
     }
 
     public CategoryResponse createCategory(CreateCategoryRequest request) {
@@ -89,6 +93,12 @@ public class CategoryService {
 
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        if (productRepository.existsByCategoryId(id)) {
+            throw new BusinessException(
+                    "Category cannot be deleted because it contains products"
+            );
+        }
 
         categoryRepository.delete(category);
     }
