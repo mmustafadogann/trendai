@@ -1,6 +1,7 @@
 package com.trendai.trendai.service;
 
 import com.trendai.trendai.dto.CreateProductRequest;
+import com.trendai.trendai.dto.ProductPageResponse;
 import com.trendai.trendai.dto.ProductResponse;
 import com.trendai.trendai.dto.UpdateProductRequest;
 import com.trendai.trendai.entity.Category;
@@ -9,8 +10,14 @@ import com.trendai.trendai.exception.ResourceNotFoundException;
 import com.trendai.trendai.mapper.ProductMapper;
 import com.trendai.trendai.repository.CategoryRepository;
 import com.trendai.trendai.repository.ProductRepository;
+import com.trendai.trendai.specification.ProductSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -44,12 +51,84 @@ public class ProductService {
         return productMapper.toResponse(savedProduct);
     }
 
-    public List<ProductResponse> getAllProducts() {
+    public ProductPageResponse searchProducts(
+            int page,
+            int size,
+            String keyword,
+            Long categoryId,
+            String brand,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            String sort) {
 
-        return productRepository.findAll()
-                .stream()
-                .map(productMapper::toResponse)
-                .toList();
+        String[] sortParts = sort.split(",");
+
+        String sortBy = sortParts[0];
+
+        Sort.Direction direction =
+                sortParts.length > 1 &&
+                        sortParts[1].equalsIgnoreCase("desc")
+                        ? Sort.Direction.DESC
+                        : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(direction, sortBy)
+        );
+
+        var specification = ProductSpecification.isActive();
+
+        if (keyword != null && !keyword.isBlank()) {
+            specification = specification.and(
+                    ProductSpecification.hasKeyword(keyword)
+            );
+        }
+
+        if (categoryId != null) {
+            specification = specification.and(
+                    ProductSpecification.hasCategoryId(categoryId)
+            );
+        }
+
+        if (brand != null && !brand.isBlank()) {
+            specification = specification.and(
+                    ProductSpecification.hasBrand(brand)
+            );
+        }
+
+        if (minPrice != null) {
+            specification = specification.and(
+                    ProductSpecification.hasMinPrice(minPrice)
+            );
+        }
+
+        if (maxPrice != null) {
+            specification = specification.and(
+                    ProductSpecification.hasMaxPrice(maxPrice)
+            );
+        }
+
+        Page<Product> productPage =
+                productRepository.findAll(specification, pageable);
+
+        ProductPageResponse response = new ProductPageResponse();
+
+        response.setContent(
+                productPage.getContent()
+                        .stream()
+                        .map(productMapper::toResponse)
+                        .toList()
+        );
+
+        response.setPage(productPage.getNumber());
+        response.setSize(productPage.getSize());
+        response.setTotalElements(productPage.getTotalElements());
+        response.setTotalPages(productPage.getTotalPages());
+        response.setFirst(productPage.isFirst());
+        response.setLast(productPage.isLast());
+
+        return response;
     }
 
     public ProductResponse getProductById(Long id) {
