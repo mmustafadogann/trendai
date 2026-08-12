@@ -1,9 +1,12 @@
 package com.trendai.trendai.service;
 
 import com.trendai.trendai.dto.CreateProductRequest;
+import com.trendai.trendai.dto.ProductPageResponse;
 import com.trendai.trendai.dto.ProductResponse;
+import com.trendai.trendai.dto.UpdateProductRequest;
 import com.trendai.trendai.entity.Category;
 import com.trendai.trendai.entity.Product;
+import com.trendai.trendai.exception.ResourceNotFoundException;
 import com.trendai.trendai.mapper.ProductMapper;
 import com.trendai.trendai.repository.CategoryRepository;
 import com.trendai.trendai.repository.ProductRepository;
@@ -12,30 +15,20 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
-import java.math.BigDecimal;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
-
-import com.trendai.trendai.dto.UpdateProductRequest;
-import com.trendai.trendai.exception.ResourceNotFoundException;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-
-
-import com.trendai.trendai.dto.ProductPageResponse;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 class ProductServiceTest {
 
@@ -140,7 +133,7 @@ class ProductServiceTest {
         request.setImageUrl("https://example.com/new.jpg");
         request.setCategoryId(2L);
 
-        when(productRepository.findById(999L))
+        when(productRepository.findByIdAndActiveTrue(999L))
                 .thenReturn(Optional.empty());
 
         assertThrows(
@@ -152,7 +145,7 @@ class ProductServiceTest {
     @Test
     void testDeleteProductNotFound() {
 
-        when(productRepository.findById(999L))
+        when(productRepository.findByIdAndActiveTrue(999L))
                 .thenReturn(Optional.empty());
 
         assertThrows(
@@ -182,6 +175,7 @@ class ProductServiceTest {
         product.setId(10L);
         product.setName("Old Product");
         product.setCategory(category);
+        product.setActive(true);
 
         ProductResponse response = new ProductResponse();
         response.setId(10L);
@@ -191,7 +185,7 @@ class ProductServiceTest {
         response.setActive(true);
         response.setCategoryId(2L);
 
-        when(productRepository.findById(10L))
+        when(productRepository.findByIdAndActiveTrue(10L))
                 .thenReturn(Optional.of(product));
 
         when(categoryRepository.findById(2L))
@@ -220,7 +214,7 @@ class ProductServiceTest {
         product.setName("Test Product");
         product.setActive(true);
 
-        when(productRepository.findById(10L))
+        when(productRepository.findByIdAndActiveTrue(10L))
                 .thenReturn(Optional.of(product));
 
         productService.deleteProduct(10L);
@@ -316,9 +310,15 @@ class ProductServiceTest {
         assertEquals(true, result.isFirst());
         assertEquals(false, result.isLast());
 
-        assertEquals("iPhone", result.getContent().get(0).getName());
-        assertEquals(new BigDecimal("85000"),
-                result.getContent().get(0).getPrice());
+        assertEquals(
+                "iPhone",
+                result.getContent().get(0).getName()
+        );
+
+        assertEquals(
+                new BigDecimal("85000"),
+                result.getContent().get(0).getPrice()
+        );
     }
 
     @Test
@@ -371,7 +371,9 @@ class ProductServiceTest {
 
         assertEquals(1, result.getContent().size());
         assertEquals(true, result.getContent().get(0).getActive());
-        assertEquals("Active Product",
-                result.getContent().get(0).getName());
+        assertEquals(
+                "Active Product",
+                result.getContent().get(0).getName()
+        );
     }
 }

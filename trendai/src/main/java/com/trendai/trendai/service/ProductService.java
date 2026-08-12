@@ -18,7 +18,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Service
 public class ProductService {
@@ -133,7 +132,7 @@ public class ProductService {
 
     public ProductResponse getProductById(Long id) {
 
-        Product product = productRepository.findById(id)
+        Product product = productRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         return productMapper.toResponse(product);
@@ -143,7 +142,7 @@ public class ProductService {
             Long id,
             UpdateProductRequest request) {
 
-        Product product = productRepository.findById(id)
+        Product product = productRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         Category category = categoryRepository.findById(request.getCategoryId())
@@ -160,7 +159,7 @@ public class ProductService {
 
     public void deleteProduct(Long id) {
 
-        Product product = productRepository.findById(id)
+        Product product = productRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         product.setActive(false);
