@@ -34,7 +34,7 @@ public class CategoryService {
 
         String categoryName = request.getName().trim();
 
-        if (categoryRepository.existsByName(categoryName)) {
+        if (categoryRepository.existsByNameIgnoreCase(categoryName)) {
             throw new BusinessException("Category already exists");
         }
 
@@ -65,15 +65,17 @@ public class CategoryService {
         return categoryMapper.toResponse(category);
     }
 
-    public CategoryResponse updateCategory(Long id, UpdateCategoryRequest request) {
+    public CategoryResponse updateCategory(
+            Long id,
+            UpdateCategoryRequest request) {
 
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         String categoryName = request.getName().trim();
 
-        if (!category.getName().equals(categoryName)
-                && categoryRepository.existsByName(categoryName)) {
+        if (!category.getName().equalsIgnoreCase(categoryName)
+                && categoryRepository.existsByNameIgnoreCase(categoryName)) {
 
             throw new BusinessException("Category already exists");
         }
