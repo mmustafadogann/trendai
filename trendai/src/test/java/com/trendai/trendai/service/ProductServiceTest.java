@@ -138,10 +138,12 @@ class ProductServiceTest {
         when(productRepository.findByIdAndActiveTrue(999L))
                 .thenReturn(Optional.empty());
 
-        assertThrows(
+        ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> productService.updateProduct(999L, request)
         );
+
+        assertEquals("Product not found", exception.getMessage());
     }
 
     @Test
@@ -150,10 +152,12 @@ class ProductServiceTest {
         when(productRepository.findByIdAndActiveTrue(999L))
                 .thenReturn(Optional.empty());
 
-        assertThrows(
+        ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> productService.deleteProduct(999L)
         );
+
+        assertEquals("Product not found", exception.getMessage());
     }
 
     @Test
@@ -225,6 +229,7 @@ class ProductServiceTest {
         assertEquals(false, product.getActive());
 
         verify(productRepository).save(product);
+
         verify(productRepository, org.mockito.Mockito.never())
                 .delete(product);
     }
@@ -235,10 +240,12 @@ class ProductServiceTest {
         when(productRepository.findByIdAndActiveTrue(10L))
                 .thenReturn(Optional.empty());
 
-        assertThrows(
+        ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> productService.getProductById(10L)
         );
+
+        assertEquals("Product not found", exception.getMessage());
     }
 
     @Test
@@ -408,10 +415,12 @@ class ProductServiceTest {
         when(productRepository.findByIdAndActiveTrue(10L))
                 .thenReturn(Optional.empty());
 
-        assertThrows(
+        ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> productService.updateProduct(10L, request)
         );
+
+        assertEquals("Product not found", exception.getMessage());
     }
 
     @Test
@@ -420,10 +429,12 @@ class ProductServiceTest {
         when(productRepository.findByIdAndActiveTrue(10L))
                 .thenReturn(Optional.empty());
 
-        assertThrows(
+        ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> productService.deleteProduct(10L)
         );
+
+        assertEquals("Product not found", exception.getMessage());
     }
 
     @Test
@@ -453,5 +464,207 @@ class ProductServiceTest {
         );
 
         assertEquals(0, result.getContent().size());
+    }
+
+    @Test
+    void testCreateProductCategoryNotFound() {
+
+        CreateProductRequest request = new CreateProductRequest();
+        request.setName("Test Product");
+        request.setDescription("Test");
+        request.setBrand("Test");
+        request.setColor("Black");
+        request.setPrice(new BigDecimal("1000"));
+        request.setStock(10);
+        request.setImageUrl("test.jpg");
+        request.setCategoryId(999L);
+
+        when(categoryRepository.findByIdAndActiveTrue(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.createProduct(request)
+        );
+
+        assertEquals("Category not found", exception.getMessage());
+    }
+
+    @Test
+    void testGetProductById() {
+
+        Product product = new Product();
+        product.setId(10L);
+        product.setName("Test Product");
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(10L);
+        response.setName("Test Product");
+        response.setActive(true);
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.of(product));
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductResponse result = productService.getProductById(10L);
+
+        assertEquals(10L, result.getId());
+        assertEquals("Test Product", result.getName());
+        assertEquals(true, result.getActive());
+    }
+
+    @Test
+    void testGetProductByIdNotFound() {
+
+        when(productRepository.findByIdAndActiveTrue(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.getProductById(999L)
+        );
+
+        assertEquals("Product not found", exception.getMessage());
+    }
+
+    @Test
+    void testGetAllProducts() {
+
+        Product product = new Product();
+        product.setId(10L);
+        product.setName("Test Product");
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(10L);
+        response.setName("Test Product");
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals(10L, result.getContent().get(0).getId());
+        assertEquals(
+                "Test Product",
+                result.getContent().get(0).getName()
+        );
+    }
+
+    @Test
+    void testUpdateProductCategoryNotFound() {
+
+        UpdateProductRequest request = new UpdateProductRequest();
+        request.setName("Updated Product");
+        request.setDescription("Updated description");
+        request.setBrand("Updated Brand");
+        request.setColor("White");
+        request.setPrice(new BigDecimal("1500"));
+        request.setStock(20);
+        request.setImageUrl("new.jpg");
+        request.setCategoryId(999L);
+
+        Product product = new Product();
+        product.setId(10L);
+        product.setName("Old Product");
+        product.setActive(true);
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.of(product));
+
+        when(categoryRepository.findByIdAndActiveTrue(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.updateProduct(10L, request)
+        );
+
+        assertEquals("Category not found", exception.getMessage());
+    }
+
+    @Test
+    void testUpdateProductCallsMapper() {
+
+        UpdateProductRequest request = new UpdateProductRequest();
+        request.setName("Updated Product");
+        request.setDescription("Updated description");
+        request.setBrand("Updated Brand");
+        request.setColor("White");
+        request.setPrice(new BigDecimal("1500"));
+        request.setStock(20);
+        request.setImageUrl("new.jpg");
+        request.setCategoryId(2L);
+
+        Category category = new Category();
+        category.setId(2L);
+        category.setName("Elektronik");
+        category.setActive(true);
+
+        Product product = new Product();
+        product.setId(10L);
+        product.setName("Old Product");
+        product.setActive(true);
+        product.setCategory(category);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(10L);
+        response.setName("Updated Product");
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.of(product));
+
+        when(categoryRepository.findByIdAndActiveTrue(2L))
+                .thenReturn(Optional.of(category));
+
+        when(productRepository.save(product))
+                .thenReturn(product);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        productService.updateProduct(10L, request);
+
+        verify(productMapper).updateEntity(product, request);
+    }
+
+    @Test
+    void testDeleteProductNotFoundMessage() {
+
+        when(productRepository.findByIdAndActiveTrue(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.deleteProduct(999L)
+        );
+
+        assertEquals("Product not found", exception.getMessage());
     }
 }
