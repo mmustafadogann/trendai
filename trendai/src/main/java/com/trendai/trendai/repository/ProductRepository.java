@@ -10,7 +10,7 @@ import java.util.Optional;
 public interface ProductRepository
         extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
-    boolean existsByCategoryId(Long categoryId);
+    boolean existsByCategoryIdAndActiveTrue(Long categoryId);
 
     List<Product> findAllByActiveTrue();
 

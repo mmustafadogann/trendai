@@ -51,7 +51,7 @@ public class CategoryService {
 
     public List<CategoryResponse> getAllCategories() {
 
-        return categoryRepository.findAll()
+        return categoryRepository.findAllByActiveTrue()
                 .stream()
                 .map(categoryMapper::toResponse)
                 .toList();
@@ -59,7 +59,7 @@ public class CategoryService {
 
     public CategoryResponse getCategoryById(Long id) {
 
-        Category category = categoryRepository.findById(id)
+        Category category = categoryRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         return categoryMapper.toResponse(category);
@@ -69,7 +69,7 @@ public class CategoryService {
             Long id,
             UpdateCategoryRequest request) {
 
-        Category category = categoryRepository.findById(id)
+        Category category = categoryRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         String categoryName = request.getName().trim();
@@ -93,15 +93,17 @@ public class CategoryService {
 
     public void deleteCategory(Long id) {
 
-        Category category = categoryRepository.findById(id)
+        Category category = categoryRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        if (productRepository.existsByCategoryId(id)) {
+        if (productRepository.existsByCategoryIdAndActiveTrue(id)) {
             throw new BusinessException(
-                    "Category cannot be deleted because it contains products"
+                    "Category cannot be deleted because it contains active products"
             );
         }
 
-        categoryRepository.delete(category);
+        category.setActive(false);
+
+        categoryRepository.save(category);
     }
 }

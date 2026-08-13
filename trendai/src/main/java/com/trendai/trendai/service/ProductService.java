@@ -38,7 +38,7 @@ public class ProductService {
 
     public ProductResponse createProduct(CreateProductRequest request) {
 
-        Category category = categoryRepository.findById(request.getCategoryId())
+        Category category = categoryRepository.findByIdAndActiveTrue(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         Product product = productMapper.toEntity(request);
@@ -145,7 +145,7 @@ public class ProductService {
         Product product = productRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        Category category = categoryRepository.findById(request.getCategoryId())
+        Category category = categoryRepository.findByIdAndActiveTrue(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         productMapper.updateEntity(product, request);

@@ -65,6 +65,7 @@ class ProductServiceTest {
         Category category = new Category();
         category.setId(2L);
         category.setName("Elektronik");
+        category.setActive(true);
 
         Product product = new Product();
         product.setName("Test Product");
@@ -97,7 +98,7 @@ class ProductServiceTest {
         response.setCategoryId(2L);
         response.setCategoryName("Elektronik");
 
-        when(categoryRepository.findById(2L))
+        when(categoryRepository.findByIdAndActiveTrue(2L))
                 .thenReturn(Optional.of(category));
 
         when(productMapper.toEntity(request))
@@ -170,6 +171,7 @@ class ProductServiceTest {
         Category category = new Category();
         category.setId(2L);
         category.setName("Elektronik");
+        category.setActive(true);
 
         Product product = new Product();
         product.setId(10L);
@@ -188,7 +190,7 @@ class ProductServiceTest {
         when(productRepository.findByIdAndActiveTrue(10L))
                 .thenReturn(Optional.of(product));
 
-        when(categoryRepository.findById(2L))
+        when(categoryRepository.findByIdAndActiveTrue(2L))
                 .thenReturn(Optional.of(category));
 
         when(productRepository.save(product))
@@ -234,6 +236,7 @@ class ProductServiceTest {
         Category category = new Category();
         category.setId(2L);
         category.setName("Elektronik");
+        category.setActive(true);
 
         Product product1 = new Product();
         product1.setId(10L);
@@ -327,6 +330,7 @@ class ProductServiceTest {
         Category category = new Category();
         category.setId(2L);
         category.setName("Elektronik");
+        category.setActive(true);
 
         Product activeProduct = new Product();
         activeProduct.setId(10L);

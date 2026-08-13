@@ -8,6 +8,7 @@ import com.trendai.trendai.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
 
@@ -22,6 +23,7 @@ public class ProductController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public ProductResponse createProduct(
             @Valid @RequestBody CreateProductRequest request) {
 
