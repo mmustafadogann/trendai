@@ -28,6 +28,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ProductServiceTest {
@@ -223,11 +224,21 @@ class ProductServiceTest {
 
         assertEquals(false, product.getActive());
 
-        org.mockito.Mockito.verify(productRepository)
-                .save(product);
-
-        org.mockito.Mockito.verify(productRepository, org.mockito.Mockito.never())
+        verify(productRepository).save(product);
+        verify(productRepository, org.mockito.Mockito.never())
                 .delete(product);
+    }
+
+    @Test
+    void testGetProductByIdInactiveProduct() {
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.getProductById(10L)
+        );
     }
 
     @Test
@@ -379,5 +390,68 @@ class ProductServiceTest {
                 "Active Product",
                 result.getContent().get(0).getName()
         );
+    }
+
+    @Test
+    void testUpdateInactiveProduct() {
+
+        UpdateProductRequest request = new UpdateProductRequest();
+        request.setName("Updated Product");
+        request.setDescription("Updated description");
+        request.setBrand("Updated Brand");
+        request.setColor("White");
+        request.setPrice(new BigDecimal("1500"));
+        request.setStock(20);
+        request.setImageUrl("https://example.com/new.jpg");
+        request.setCategoryId(2L);
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.updateProduct(10L, request)
+        );
+    }
+
+    @Test
+    void testDeleteInactiveProductAgain() {
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.deleteProduct(10L)
+        );
+    }
+
+    @Test
+    void testSearchDoesNotIncludeInactiveProduct() {
+
+        PageImpl<Product> emptyPage =
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(0, 10),
+                        0
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(emptyPage);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(0, result.getContent().size());
     }
 }
