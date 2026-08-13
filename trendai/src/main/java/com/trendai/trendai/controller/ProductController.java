@@ -6,14 +6,18 @@ import com.trendai.trendai.dto.ProductResponse;
 import com.trendai.trendai.dto.UpdateProductRequest;
 import com.trendai.trendai.service.ProductService;
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/products")
+@Validated
 public class ProductController {
 
     private final ProductService productService;
@@ -32,8 +36,15 @@ public class ProductController {
 
     @GetMapping
     public ProductPageResponse searchProducts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "Page cannot be negative")
+            int page,
+
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "Size must be at least 1")
+            @Max(value = 100, message = "Size cannot exceed 100")
+            int size,
+
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String brand,
