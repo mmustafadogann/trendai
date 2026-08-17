@@ -1,14 +1,15 @@
 package com.trendai.trendai.controller;
 
 import com.trendai.trendai.dto.CreateProductRequest;
+import com.trendai.trendai.dto.ProductPageResponse;
 import com.trendai.trendai.dto.ProductResponse;
 import com.trendai.trendai.dto.UpdateProductRequest;
 import com.trendai.trendai.service.ProductService;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/products")
@@ -28,9 +29,26 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<ProductResponse> getAllProducts() {
+    public ProductPageResponse searchProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(defaultValue = "id,asc") String sort) {
 
-        return productService.getAllProducts();
+        return productService.searchProducts(
+                page,
+                size,
+                keyword,
+                categoryId,
+                brand,
+                minPrice,
+                maxPrice,
+                sort
+        );
     }
 
     @GetMapping("/{id}")
