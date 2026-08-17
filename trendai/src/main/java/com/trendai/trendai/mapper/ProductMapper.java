@@ -13,10 +13,26 @@ public class ProductMapper {
 
         Product product = new Product();
 
-        product.setName(request.getName());
+        product.setName(
+                request.getName() != null
+                        ? request.getName().trim()
+                        : null
+        );
+
         product.setDescription(request.getDescription());
-        product.setBrand(request.getBrand());
-        product.setColor(request.getColor());
+
+        product.setBrand(
+                request.getBrand() != null
+                        ? request.getBrand().trim()
+                        : null
+        );
+
+        product.setColor(
+                request.getColor() != null
+                        ? request.getColor().trim()
+                        : null
+        );
+
         product.setPrice(request.getPrice());
         product.setStock(request.getStock());
         product.setImageUrl(request.getImageUrl());
@@ -26,10 +42,26 @@ public class ProductMapper {
 
     public void updateEntity(Product product, UpdateProductRequest request) {
 
-        product.setName(request.getName());
+        product.setName(
+                request.getName() != null
+                        ? request.getName().trim()
+                        : null
+        );
+
         product.setDescription(request.getDescription());
-        product.setBrand(request.getBrand());
-        product.setColor(request.getColor());
+
+        product.setBrand(
+                request.getBrand() != null
+                        ? request.getBrand().trim()
+                        : null
+        );
+
+        product.setColor(
+                request.getColor() != null
+                        ? request.getColor().trim()
+                        : null
+        );
+
         product.setPrice(request.getPrice());
         product.setStock(request.getStock());
         product.setImageUrl(request.getImageUrl());

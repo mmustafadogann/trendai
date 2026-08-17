@@ -49,16 +49,19 @@ class CategoryServiceTest {
         Category category = new Category();
         category.setName("Elektronik");
         category.setDescription("Elektronik Ürünler");
+        category.setActive(true);
 
         Category savedCategory = new Category();
         savedCategory.setId(1L);
         savedCategory.setName("Elektronik");
         savedCategory.setDescription("Elektronik Ürünler");
+        savedCategory.setActive(true);
 
         CategoryResponse response = new CategoryResponse();
         response.setId(1L);
         response.setName("Elektronik");
         response.setDescription("Elektronik Ürünler");
+        response.setActive(true);
 
         when(categoryRepository.existsByNameIgnoreCase("Elektronik"))
                 .thenReturn(false);
@@ -77,6 +80,7 @@ class CategoryServiceTest {
         assertEquals(1L, result.getId());
         assertEquals("Elektronik", result.getName());
         assertEquals("Elektronik Ürünler", result.getDescription());
+        assertEquals(true, result.getActive());
     }
 
     @Test
@@ -102,7 +106,7 @@ class CategoryServiceTest {
         request.setName("Elektronik");
         request.setDescription("Elektronik Ürünler");
 
-        when(categoryRepository.findById(999L))
+        when(categoryRepository.findByIdAndActiveTrue(999L))
                 .thenReturn(java.util.Optional.empty());
 
         assertThrows(
@@ -112,16 +116,17 @@ class CategoryServiceTest {
     }
 
     @Test
-    void testDeleteCategoryWithProducts() {
+    void testDeleteCategoryWithActiveProducts() {
 
         Category category = new Category();
         category.setId(1L);
         category.setName("Elektronik");
+        category.setActive(true);
 
-        when(categoryRepository.findById(1L))
+        when(categoryRepository.findByIdAndActiveTrue(1L))
                 .thenReturn(java.util.Optional.of(category));
 
-        when(productRepository.existsByCategoryId(1L))
+        when(productRepository.existsByCategoryIdAndActiveTrue(1L))
                 .thenReturn(true);
 
         assertThrows(
@@ -131,21 +136,27 @@ class CategoryServiceTest {
     }
 
     @Test
-    void testDeleteCategoryWithoutProducts() {
+    void testDeleteCategoryWithoutActiveProducts() {
 
         Category category = new Category();
         category.setId(2L);
         category.setName("Kitap");
+        category.setActive(true);
 
-        when(categoryRepository.findById(2L))
+        when(categoryRepository.findByIdAndActiveTrue(2L))
                 .thenReturn(java.util.Optional.of(category));
 
-        when(productRepository.existsByCategoryId(2L))
+        when(productRepository.existsByCategoryIdAndActiveTrue(2L))
                 .thenReturn(false);
 
         categoryService.deleteCategory(2L);
 
+        assertEquals(false, category.getActive());
+
         org.mockito.Mockito.verify(categoryRepository)
+                .save(category);
+
+        org.mockito.Mockito.verify(categoryRepository, org.mockito.Mockito.never())
                 .delete(category);
     }
 }

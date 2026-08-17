@@ -6,6 +6,7 @@ import com.trendai.trendai.dto.ProductResponse;
 import com.trendai.trendai.dto.UpdateProductRequest;
 import com.trendai.trendai.entity.Category;
 import com.trendai.trendai.entity.Product;
+import com.trendai.trendai.exception.BadRequestException;
 import com.trendai.trendai.exception.ResourceNotFoundException;
 import com.trendai.trendai.mapper.ProductMapper;
 import com.trendai.trendai.repository.CategoryRepository;
@@ -18,10 +19,19 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.Set;
 
 @Service
 public class ProductService {
+
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "id",
+            "name",
+            "price",
+            "stock",
+            "brand",
+            "color"
+    );
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
@@ -39,8 +49,10 @@ public class ProductService {
 
     public ProductResponse createProduct(CreateProductRequest request) {
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        Category category = categoryRepository
+                .findByIdAndActiveTrue(request.getCategoryId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Category not found"));
 
         Product product = productMapper.toEntity(request);
 
@@ -61,13 +73,39 @@ public class ProductService {
             BigDecimal maxPrice,
             String sort) {
 
-        String[] sortParts = sort.split(",");
+        if (minPrice != null
+                && maxPrice != null
+                && minPrice.compareTo(maxPrice) > 0) {
+
+            throw new BadRequestException(
+                    "Minimum price cannot be greater than maximum price"
+            );
+        }
+
+        String[] sortParts = sort.split(",", -1);
+
+        if (sortParts.length != 2) {
+            throw new BadRequestException(
+                    "Sort must be in the format field,direction"
+            );
+        }
 
         String sortBy = sortParts[0];
 
+        if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            throw new BadRequestException("Invalid sort field");
+        }
+
+        String sortDirection = sortParts[1].toLowerCase();
+
+        if (!sortDirection.equals("asc")
+                && !sortDirection.equals("desc")) {
+
+            throw new BadRequestException("Invalid sort direction");
+        }
+
         Sort.Direction direction =
-                sortParts.length > 1 &&
-                        sortParts[1].equalsIgnoreCase("desc")
+                sortDirection.equals("desc")
                         ? Sort.Direction.DESC
                         : Sort.Direction.ASC;
 
@@ -133,8 +171,9 @@ public class ProductService {
 
     public ProductResponse getProductById(Long id) {
 
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        Product product = productRepository.findByIdAndActiveTrue(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Product not found"));
 
         return productMapper.toResponse(product);
     }
@@ -143,11 +182,14 @@ public class ProductService {
             Long id,
             UpdateProductRequest request) {
 
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        Product product = productRepository.findByIdAndActiveTrue(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Product not found"));
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        Category category = categoryRepository
+                .findByIdAndActiveTrue(request.getCategoryId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Category not found"));
 
         productMapper.updateEntity(product, request);
 
@@ -160,8 +202,9 @@ public class ProductService {
 
     public void deleteProduct(Long id) {
 
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        Product product = productRepository.findByIdAndActiveTrue(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Product not found"));
 
         product.setActive(false);
 

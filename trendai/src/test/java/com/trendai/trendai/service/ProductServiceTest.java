@@ -1,42 +1,37 @@
 package com.trendai.trendai.service;
 
 import com.trendai.trendai.dto.CreateProductRequest;
+import com.trendai.trendai.dto.ProductPageResponse;
 import com.trendai.trendai.dto.ProductResponse;
+import com.trendai.trendai.dto.UpdateProductRequest;
 import com.trendai.trendai.entity.Category;
 import com.trendai.trendai.entity.Product;
+import com.trendai.trendai.exception.ResourceNotFoundException;
 import com.trendai.trendai.mapper.ProductMapper;
 import com.trendai.trendai.repository.CategoryRepository;
 import com.trendai.trendai.repository.ProductRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import java.math.BigDecimal;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
-
-import com.trendai.trendai.dto.UpdateProductRequest;
-import com.trendai.trendai.exception.ResourceNotFoundException;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-
-
-import com.trendai.trendai.dto.ProductPageResponse;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
 
     @Mock
@@ -50,11 +45,6 @@ class ProductServiceTest {
 
     @InjectMocks
     private ProductService productService;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void testCreateProduct() {
@@ -72,6 +62,7 @@ class ProductServiceTest {
         Category category = new Category();
         category.setId(2L);
         category.setName("Elektronik");
+        category.setActive(true);
 
         Product product = new Product();
         product.setName("Test Product");
@@ -104,7 +95,7 @@ class ProductServiceTest {
         response.setCategoryId(2L);
         response.setCategoryName("Elektronik");
 
-        when(categoryRepository.findById(2L))
+        when(categoryRepository.findByIdAndActiveTrue(2L))
                 .thenReturn(Optional.of(category));
 
         when(productMapper.toEntity(request))
@@ -140,25 +131,29 @@ class ProductServiceTest {
         request.setImageUrl("https://example.com/new.jpg");
         request.setCategoryId(2L);
 
-        when(productRepository.findById(999L))
+        when(productRepository.findByIdAndActiveTrue(999L))
                 .thenReturn(Optional.empty());
 
-        assertThrows(
+        ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> productService.updateProduct(999L, request)
         );
+
+        assertEquals("Product not found", exception.getMessage());
     }
 
     @Test
     void testDeleteProductNotFound() {
 
-        when(productRepository.findById(999L))
+        when(productRepository.findByIdAndActiveTrue(999L))
                 .thenReturn(Optional.empty());
 
-        assertThrows(
+        ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> productService.deleteProduct(999L)
         );
+
+        assertEquals("Product not found", exception.getMessage());
     }
 
     @Test
@@ -177,11 +172,13 @@ class ProductServiceTest {
         Category category = new Category();
         category.setId(2L);
         category.setName("Elektronik");
+        category.setActive(true);
 
         Product product = new Product();
         product.setId(10L);
         product.setName("Old Product");
         product.setCategory(category);
+        product.setActive(true);
 
         ProductResponse response = new ProductResponse();
         response.setId(10L);
@@ -191,10 +188,10 @@ class ProductServiceTest {
         response.setActive(true);
         response.setCategoryId(2L);
 
-        when(productRepository.findById(10L))
+        when(productRepository.findByIdAndActiveTrue(10L))
                 .thenReturn(Optional.of(product));
 
-        when(categoryRepository.findById(2L))
+        when(categoryRepository.findByIdAndActiveTrue(2L))
                 .thenReturn(Optional.of(category));
 
         when(productRepository.save(product))
@@ -220,18 +217,31 @@ class ProductServiceTest {
         product.setName("Test Product");
         product.setActive(true);
 
-        when(productRepository.findById(10L))
+        when(productRepository.findByIdAndActiveTrue(10L))
                 .thenReturn(Optional.of(product));
 
         productService.deleteProduct(10L);
 
         assertEquals(false, product.getActive());
 
-        org.mockito.Mockito.verify(productRepository)
-                .save(product);
+        verify(productRepository).save(product);
 
-        org.mockito.Mockito.verify(productRepository, org.mockito.Mockito.never())
+        verify(productRepository, org.mockito.Mockito.never())
                 .delete(product);
+    }
+
+    @Test
+    void testGetProductByIdInactiveProduct() {
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.getProductById(10L)
+        );
+
+        assertEquals("Product not found", exception.getMessage());
     }
 
     @Test
@@ -240,6 +250,7 @@ class ProductServiceTest {
         Category category = new Category();
         category.setId(2L);
         category.setName("Elektronik");
+        category.setActive(true);
 
         Product product1 = new Product();
         product1.setId(10L);
@@ -316,9 +327,15 @@ class ProductServiceTest {
         assertEquals(true, result.isFirst());
         assertEquals(false, result.isLast());
 
-        assertEquals("iPhone", result.getContent().get(0).getName());
-        assertEquals(new BigDecimal("85000"),
-                result.getContent().get(0).getPrice());
+        assertEquals(
+                "iPhone",
+                result.getContent().get(0).getName()
+        );
+
+        assertEquals(
+                new BigDecimal("85000"),
+                result.getContent().get(0).getPrice()
+        );
     }
 
     @Test
@@ -327,6 +344,7 @@ class ProductServiceTest {
         Category category = new Category();
         category.setId(2L);
         category.setName("Elektronik");
+        category.setActive(true);
 
         Product activeProduct = new Product();
         activeProduct.setId(10L);
@@ -371,7 +389,641 @@ class ProductServiceTest {
 
         assertEquals(1, result.getContent().size());
         assertEquals(true, result.getContent().get(0).getActive());
-        assertEquals("Active Product",
+        assertEquals(
+                "Active Product",
+                result.getContent().get(0).getName()
+        );
+    }
+
+    @Test
+    void testUpdateInactiveProduct() {
+
+        UpdateProductRequest request = new UpdateProductRequest();
+        request.setName("Updated Product");
+        request.setDescription("Updated description");
+        request.setBrand("Updated Brand");
+        request.setColor("White");
+        request.setPrice(new BigDecimal("1500"));
+        request.setStock(20);
+        request.setImageUrl("https://example.com/new.jpg");
+        request.setCategoryId(2L);
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.updateProduct(10L, request)
+        );
+
+        assertEquals("Product not found", exception.getMessage());
+    }
+
+    @Test
+    void testDeleteInactiveProductAgain() {
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.deleteProduct(10L)
+        );
+
+        assertEquals("Product not found", exception.getMessage());
+    }
+
+    @Test
+    void testSearchDoesNotIncludeInactiveProduct() {
+
+        PageImpl<Product> emptyPage =
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(0, 10),
+                        0
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(emptyPage);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(0, result.getContent().size());
+    }
+
+    @Test
+    void testCreateProductCategoryNotFound() {
+
+        CreateProductRequest request = new CreateProductRequest();
+        request.setName("Test Product");
+        request.setDescription("Test");
+        request.setBrand("Test");
+        request.setColor("Black");
+        request.setPrice(new BigDecimal("1000"));
+        request.setStock(10);
+        request.setImageUrl("test.jpg");
+        request.setCategoryId(999L);
+
+        when(categoryRepository.findByIdAndActiveTrue(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.createProduct(request)
+        );
+
+        assertEquals("Category not found", exception.getMessage());
+    }
+
+    @Test
+    void testGetProductById() {
+
+        Product product = new Product();
+        product.setId(10L);
+        product.setName("Test Product");
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(10L);
+        response.setName("Test Product");
+        response.setActive(true);
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.of(product));
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductResponse result = productService.getProductById(10L);
+
+        assertEquals(10L, result.getId());
+        assertEquals("Test Product", result.getName());
+        assertEquals(true, result.getActive());
+    }
+
+    @Test
+    void testGetProductByIdNotFound() {
+
+        when(productRepository.findByIdAndActiveTrue(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.getProductById(999L)
+        );
+
+        assertEquals("Product not found", exception.getMessage());
+    }
+
+    @Test
+    void testGetAllProducts() {
+
+        Product product = new Product();
+        product.setId(10L);
+        product.setName("Test Product");
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(10L);
+        response.setName("Test Product");
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals(10L, result.getContent().get(0).getId());
+        assertEquals(
+                "Test Product",
+                result.getContent().get(0).getName()
+        );
+    }
+
+    @Test
+    void testUpdateProductCategoryNotFound() {
+
+        UpdateProductRequest request = new UpdateProductRequest();
+        request.setName("Updated Product");
+        request.setDescription("Updated description");
+        request.setBrand("Updated Brand");
+        request.setColor("White");
+        request.setPrice(new BigDecimal("1500"));
+        request.setStock(20);
+        request.setImageUrl("new.jpg");
+        request.setCategoryId(999L);
+
+        Product product = new Product();
+        product.setId(10L);
+        product.setName("Old Product");
+        product.setActive(true);
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.of(product));
+
+        when(categoryRepository.findByIdAndActiveTrue(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.updateProduct(10L, request)
+        );
+
+        assertEquals("Category not found", exception.getMessage());
+    }
+
+    @Test
+    void testUpdateProductCallsMapper() {
+
+        UpdateProductRequest request = new UpdateProductRequest();
+        request.setName("Updated Product");
+        request.setDescription("Updated description");
+        request.setBrand("Updated Brand");
+        request.setColor("White");
+        request.setPrice(new BigDecimal("1500"));
+        request.setStock(20);
+        request.setImageUrl("new.jpg");
+        request.setCategoryId(2L);
+
+        Category category = new Category();
+        category.setId(2L);
+        category.setName("Elektronik");
+        category.setActive(true);
+
+        Product product = new Product();
+        product.setId(10L);
+        product.setName("Old Product");
+        product.setActive(true);
+        product.setCategory(category);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(10L);
+        response.setName("Updated Product");
+
+        when(productRepository.findByIdAndActiveTrue(10L))
+                .thenReturn(Optional.of(product));
+
+        when(categoryRepository.findByIdAndActiveTrue(2L))
+                .thenReturn(Optional.of(category));
+
+        when(productRepository.save(product))
+                .thenReturn(product);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        productService.updateProduct(10L, request);
+
+        verify(productMapper).updateEntity(product, request);
+    }
+
+    @Test
+    void testDeleteProductNotFoundMessage() {
+
+        when(productRepository.findByIdAndActiveTrue(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> productService.deleteProduct(999L)
+        );
+
+        assertEquals("Product not found", exception.getMessage());
+    }
+    @Test
+    void testSearchByKeyword() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("iPhone Telefon");
+        product.setBrand("Apple");
+        product.setPrice(new BigDecimal("50000"));
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("iPhone Telefon");
+        response.setBrand("Apple");
+        response.setPrice(new BigDecimal("50000"));
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                "telefon",
+                null,
+                null,
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals("iPhone Telefon",
                 result.getContent().get(0).getName());
+    }
+    @Test
+    void testSearchByBrand() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("iPhone");
+        product.setBrand("Apple");
+        product.setPrice(new BigDecimal("50000"));
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("iPhone");
+        response.setBrand("Apple");
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                null,
+                "apple",
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals("Apple",
+                result.getContent().get(0).getBrand());
+    }
+    @Test
+    void testSearchByCategory() {
+
+        Category category = new Category();
+        category.setId(2L);
+        category.setName("Elektronik");
+        category.setActive(true);
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("iPhone");
+        product.setBrand("Apple");
+        product.setCategory(category);
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("iPhone");
+        response.setCategoryId(2L);
+        response.setCategoryName("Elektronik");
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                2L,
+                null,
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals(2L,
+                result.getContent().get(0).getCategoryId());
+    }
+    @Test
+    void testSearchByMinPrice() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("Expensive Product");
+        product.setPrice(new BigDecimal("10000"));
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("Expensive Product");
+        response.setPrice(new BigDecimal("10000"));
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                null,
+                null,
+                new BigDecimal("5000"),
+                null,
+                "price,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals(
+                new BigDecimal("10000"),
+                result.getContent().get(0).getPrice()
+        );
+    }
+    @Test
+    void testSearchByMaxPrice() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("Cheap Product");
+        product.setPrice(new BigDecimal("5000"));
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("Cheap Product");
+        response.setPrice(new BigDecimal("5000"));
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                null,
+                null,
+                null,
+                new BigDecimal("10000"),
+                "price,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals(
+                new BigDecimal("5000"),
+                result.getContent().get(0).getPrice()
+        );
+    }
+    @Test
+    void testSearchKeywordAndBrandAreCaseInsensitive() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("iPhone Telefon");
+        product.setBrand("Apple");
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("iPhone Telefon");
+        response.setBrand("Apple");
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                "IPHONE",
+                null,
+                "APPLE",
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals("iPhone Telefon",
+                result.getContent().get(0).getName());
+        assertEquals("Apple",
+                result.getContent().get(0).getBrand());
+    }
+    @Test
+    void testSearchWithAllFiltersTogether() {
+
+        Category category = new Category();
+        category.setId(2L);
+        category.setName("Elektronik");
+        category.setActive(true);
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("iPhone Telefon");
+        product.setBrand("Apple");
+        product.setColor("Black");
+        product.setPrice(new BigDecimal("50000"));
+        product.setStock(10);
+        product.setActive(true);
+        product.setCategory(category);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("iPhone Telefon");
+        response.setBrand("Apple");
+        response.setColor("Black");
+        response.setPrice(new BigDecimal("50000"));
+        response.setStock(10);
+        response.setActive(true);
+        response.setCategoryId(2L);
+        response.setCategoryName("Elektronik");
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(
+                                1,
+                                10,
+                                Sort.by(
+                                        Sort.Direction.ASC,
+                                        "price"
+                                )
+                        ),
+                        11
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                1,
+                10,
+                "IPHONE",
+                2L,
+                "APPLE",
+                new BigDecimal("40000"),
+                new BigDecimal("60000"),
+                "price,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals(1, result.getPage());
+        assertEquals(10, result.getSize());
+        assertEquals(11, result.getTotalElements());
+        assertEquals(2, result.getTotalPages());
+        assertEquals(false, result.isFirst());
+        assertEquals(true, result.isLast());
+
+        assertEquals("iPhone Telefon",
+                result.getContent().get(0).getName());
+        assertEquals("Apple",
+                result.getContent().get(0).getBrand());
+        assertEquals(new BigDecimal("50000"),
+                result.getContent().get(0).getPrice());
     }
 }
