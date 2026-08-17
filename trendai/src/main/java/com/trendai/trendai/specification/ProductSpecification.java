@@ -4,6 +4,7 @@ import com.trendai.trendai.entity.Product;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 
 public class ProductSpecification {
 
@@ -11,7 +12,7 @@ public class ProductSpecification {
         return (root, query, criteriaBuilder) ->
                 criteriaBuilder.like(
                         criteriaBuilder.lower(root.get("name")),
-                        "%" + keyword.toLowerCase() + "%"
+                        "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%"
                 );
     }
 
@@ -27,7 +28,7 @@ public class ProductSpecification {
         return (root, query, criteriaBuilder) ->
                 criteriaBuilder.equal(
                         criteriaBuilder.lower(root.get("brand")),
-                        brand.toLowerCase()
+                        brand.trim().toLowerCase(Locale.ROOT)
                 );
     }
 

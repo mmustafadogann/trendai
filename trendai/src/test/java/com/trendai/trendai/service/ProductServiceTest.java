@@ -663,4 +663,367 @@ class ProductServiceTest {
 
         assertEquals("Product not found", exception.getMessage());
     }
+    @Test
+    void testSearchByKeyword() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("iPhone Telefon");
+        product.setBrand("Apple");
+        product.setPrice(new BigDecimal("50000"));
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("iPhone Telefon");
+        response.setBrand("Apple");
+        response.setPrice(new BigDecimal("50000"));
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                "telefon",
+                null,
+                null,
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals("iPhone Telefon",
+                result.getContent().get(0).getName());
+    }
+    @Test
+    void testSearchByBrand() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("iPhone");
+        product.setBrand("Apple");
+        product.setPrice(new BigDecimal("50000"));
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("iPhone");
+        response.setBrand("Apple");
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                null,
+                "apple",
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals("Apple",
+                result.getContent().get(0).getBrand());
+    }
+    @Test
+    void testSearchByCategory() {
+
+        Category category = new Category();
+        category.setId(2L);
+        category.setName("Elektronik");
+        category.setActive(true);
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("iPhone");
+        product.setBrand("Apple");
+        product.setCategory(category);
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("iPhone");
+        response.setCategoryId(2L);
+        response.setCategoryName("Elektronik");
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                2L,
+                null,
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals(2L,
+                result.getContent().get(0).getCategoryId());
+    }
+    @Test
+    void testSearchByMinPrice() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("Expensive Product");
+        product.setPrice(new BigDecimal("10000"));
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("Expensive Product");
+        response.setPrice(new BigDecimal("10000"));
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                null,
+                null,
+                new BigDecimal("5000"),
+                null,
+                "price,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals(
+                new BigDecimal("10000"),
+                result.getContent().get(0).getPrice()
+        );
+    }
+    @Test
+    void testSearchByMaxPrice() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("Cheap Product");
+        product.setPrice(new BigDecimal("5000"));
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("Cheap Product");
+        response.setPrice(new BigDecimal("5000"));
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                null,
+                null,
+                null,
+                null,
+                new BigDecimal("10000"),
+                "price,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals(
+                new BigDecimal("5000"),
+                result.getContent().get(0).getPrice()
+        );
+    }
+    @Test
+    void testSearchKeywordAndBrandAreCaseInsensitive() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("iPhone Telefon");
+        product.setBrand("Apple");
+        product.setActive(true);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("iPhone Telefon");
+        response.setBrand("Apple");
+        response.setActive(true);
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(0, 10),
+                        1
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                0,
+                10,
+                "IPHONE",
+                null,
+                "APPLE",
+                null,
+                null,
+                "id,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals("iPhone Telefon",
+                result.getContent().get(0).getName());
+        assertEquals("Apple",
+                result.getContent().get(0).getBrand());
+    }
+    @Test
+    void testSearchWithAllFiltersTogether() {
+
+        Category category = new Category();
+        category.setId(2L);
+        category.setName("Elektronik");
+        category.setActive(true);
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("iPhone Telefon");
+        product.setBrand("Apple");
+        product.setColor("Black");
+        product.setPrice(new BigDecimal("50000"));
+        product.setStock(10);
+        product.setActive(true);
+        product.setCategory(category);
+
+        ProductResponse response = new ProductResponse();
+        response.setId(1L);
+        response.setName("iPhone Telefon");
+        response.setBrand("Apple");
+        response.setColor("Black");
+        response.setPrice(new BigDecimal("50000"));
+        response.setStock(10);
+        response.setActive(true);
+        response.setCategoryId(2L);
+        response.setCategoryName("Elektronik");
+
+        PageImpl<Product> productPage =
+                new PageImpl<>(
+                        List.of(product),
+                        PageRequest.of(
+                                1,
+                                10,
+                                Sort.by(
+                                        Sort.Direction.ASC,
+                                        "price"
+                                )
+                        ),
+                        11
+                );
+
+        when(productRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<Product>>any(),
+                any(Pageable.class)
+        )).thenReturn(productPage);
+
+        when(productMapper.toResponse(product))
+                .thenReturn(response);
+
+        ProductPageResponse result = productService.searchProducts(
+                1,
+                10,
+                "IPHONE",
+                2L,
+                "APPLE",
+                new BigDecimal("40000"),
+                new BigDecimal("60000"),
+                "price,asc"
+        );
+
+        assertEquals(1, result.getContent().size());
+        assertEquals(1, result.getPage());
+        assertEquals(10, result.getSize());
+        assertEquals(11, result.getTotalElements());
+        assertEquals(2, result.getTotalPages());
+        assertEquals(false, result.isFirst());
+        assertEquals(true, result.isLast());
+
+        assertEquals("iPhone Telefon",
+                result.getContent().get(0).getName());
+        assertEquals("Apple",
+                result.getContent().get(0).getBrand());
+        assertEquals(new BigDecimal("50000"),
+                result.getContent().get(0).getPrice());
+    }
 }

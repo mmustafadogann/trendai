@@ -6,6 +6,7 @@ import com.trendai.trendai.dto.ProductResponse;
 import com.trendai.trendai.dto.UpdateProductRequest;
 import com.trendai.trendai.service.ProductService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
@@ -45,12 +46,33 @@ public class ProductController {
             @Max(value = 100, message = "Size cannot exceed 100")
             int size,
 
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) String brand,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice,
-            @RequestParam(defaultValue = "id,asc") String sort) {
+            @RequestParam(required = false)
+            String keyword,
+
+            @RequestParam(required = false)
+            Long categoryId,
+
+            @RequestParam(required = false)
+            String brand,
+
+            @RequestParam(required = false)
+            @DecimalMin(
+                    value = "0.0",
+                    inclusive = true,
+                    message = "Minimum price cannot be negative"
+            )
+            BigDecimal minPrice,
+
+            @RequestParam(required = false)
+            @DecimalMin(
+                    value = "0.0",
+                    inclusive = true,
+                    message = "Maximum price cannot be negative"
+            )
+            BigDecimal maxPrice,
+
+            @RequestParam(defaultValue = "id,asc")
+            String sort) {
 
         return productService.searchProducts(
                 page,
