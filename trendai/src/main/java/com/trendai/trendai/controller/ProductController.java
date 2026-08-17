@@ -2,9 +2,11 @@ package com.trendai.trendai.controller;
 
 import com.trendai.trendai.dto.CreateProductRequest;
 import com.trendai.trendai.dto.ProductResponse;
+import com.trendai.trendai.dto.UpdateProductRequest;
 import com.trendai.trendai.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
@@ -19,17 +21,39 @@ public class ProductController {
     }
 
     @PostMapping
-    public ProductResponse createProduct(@Valid @RequestBody CreateProductRequest request) {
+    public ProductResponse createProduct(
+            @Valid @RequestBody CreateProductRequest request) {
+
         return productService.createProduct(request);
     }
 
     @GetMapping
     public List<ProductResponse> getAllProducts() {
+
         return productService.getAllProducts();
     }
 
     @GetMapping("/{id}")
-    public ProductResponse getProductById(@PathVariable Long id) {
+    public ProductResponse getProductById(
+            @PathVariable Long id) {
+
         return productService.getProductById(id);
+    }
+
+    @PutMapping("/{id}")
+    public ProductResponse updateProduct(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateProductRequest request) {
+
+        return productService.updateProduct(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(
+            @PathVariable Long id) {
+
+        productService.deleteProduct(id);
+
+        return ResponseEntity.noContent().build();
     }
 }
