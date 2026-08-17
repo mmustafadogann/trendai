@@ -2,7 +2,10 @@ package com.trendai.trendai.service;
 
 import com.trendai.trendai.dto.CategoryResponse;
 import com.trendai.trendai.dto.CreateCategoryRequest;
+import com.trendai.trendai.dto.UpdateCategoryRequest;
 import com.trendai.trendai.entity.Category;
+import com.trendai.trendai.exception.BusinessException;
+import com.trendai.trendai.exception.ResourceNotFoundException;
 import com.trendai.trendai.mapper.CategoryMapper;
 import com.trendai.trendai.repository.CategoryRepository;
 import com.trendai.trendai.repository.ProductRepository;
@@ -12,16 +15,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import com.trendai.trendai.exception.BusinessException;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import com.trendai.trendai.dto.UpdateCategoryRequest;
-import com.trendai.trendai.exception.ResourceNotFoundException;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CategoryServiceTest {
 
@@ -63,7 +60,7 @@ class CategoryServiceTest {
         response.setName("Elektronik");
         response.setDescription("Elektronik Ürünler");
 
-        when(categoryRepository.existsByName("Elektronik"))
+        when(categoryRepository.existsByNameIgnoreCase("Elektronik"))
                 .thenReturn(false);
 
         when(categoryMapper.toEntity(any(CreateCategoryRequest.class)))
@@ -89,7 +86,7 @@ class CategoryServiceTest {
         request.setName("Elektronik");
         request.setDescription("Elektronik Ürünler");
 
-        when(categoryRepository.existsByName("Elektronik"))
+        when(categoryRepository.existsByNameIgnoreCase("Elektronik"))
                 .thenReturn(true);
 
         assertThrows(
@@ -113,6 +110,7 @@ class CategoryServiceTest {
                 () -> categoryService.updateCategory(999L, request)
         );
     }
+
     @Test
     void testDeleteCategoryWithProducts() {
 
@@ -131,7 +129,6 @@ class CategoryServiceTest {
                 () -> categoryService.deleteCategory(1L)
         );
     }
-
 
     @Test
     void testDeleteCategoryWithoutProducts() {
