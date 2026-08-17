@@ -2,10 +2,14 @@ package com.trendai.trendai.service;
 
 import com.trendai.trendai.dto.CategoryResponse;
 import com.trendai.trendai.dto.CreateCategoryRequest;
+import com.trendai.trendai.dto.UpdateCategoryRequest;
 import com.trendai.trendai.entity.Category;
-import com.trendai.trendai.repository.CategoryRepository;
-import org.springframework.stereotype.Service;
+import com.trendai.trendai.exception.BusinessException;
 import com.trendai.trendai.exception.ResourceNotFoundException;
+import com.trendai.trendai.mapper.CategoryMapper;
+import com.trendai.trendai.repository.CategoryRepository;
+import com.trendai.trendai.repository.ProductRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -13,40 +17,44 @@ import java.util.List;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final CategoryMapper categoryMapper;
+    private final ProductRepository productRepository;
 
-    public CategoryService(CategoryRepository categoryRepository) {
+    public CategoryService(
+            CategoryRepository categoryRepository,
+            CategoryMapper categoryMapper,
+            ProductRepository productRepository) {
+
         this.categoryRepository = categoryRepository;
+        this.categoryMapper = categoryMapper;
+        this.productRepository = productRepository;
     }
 
     public CategoryResponse createCategory(CreateCategoryRequest request) {
 
-        // DTO -> Entity (Manual Mapping)
-        Category category = new Category();
-        category.setName(request.getName());
-        category.setDescription(request.getDescription());
+        String categoryName = request.getName().trim();
+
+        if (categoryRepository.existsByName(categoryName)) {
+            throw new BusinessException("Category already exists");
+        }
+
+        CreateCategoryRequest cleanedRequest = new CreateCategoryRequest();
+        cleanedRequest.setName(categoryName);
+        cleanedRequest.setDescription(request.getDescription());
+
+        Category category = categoryMapper.toEntity(cleanedRequest);
 
         Category savedCategory = categoryRepository.save(category);
 
-        // Entity -> DTO (Manual Mapping)
-        CategoryResponse response = new CategoryResponse();
-        response.setId(savedCategory.getId());
-        response.setName(savedCategory.getName());
-        response.setDescription(savedCategory.getDescription());
-
-        return response;
+        return categoryMapper.toResponse(savedCategory);
     }
 
     public List<CategoryResponse> getAllCategories() {
 
-        return categoryRepository.findAll().stream().map(category -> {
-            CategoryResponse response = new CategoryResponse();
-
-            response.setId(category.getId());
-            response.setName(category.getName());
-            response.setDescription(category.getDescription());
-
-            return response;
-        }).toList();
+        return categoryRepository.findAll()
+                .stream()
+                .map(categoryMapper::toResponse)
+                .toList();
     }
 
     public CategoryResponse getCategoryById(Long id) {
@@ -54,11 +62,44 @@ public class CategoryService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        CategoryResponse response = new CategoryResponse();
-        response.setId(category.getId());
-        response.setName(category.getName());
-        response.setDescription(category.getDescription());
+        return categoryMapper.toResponse(category);
+    }
 
-        return response;
+    public CategoryResponse updateCategory(Long id, UpdateCategoryRequest request) {
+
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        String categoryName = request.getName().trim();
+
+        if (!category.getName().equals(categoryName)
+                && categoryRepository.existsByName(categoryName)) {
+
+            throw new BusinessException("Category already exists");
+        }
+
+        UpdateCategoryRequest cleanedRequest = new UpdateCategoryRequest();
+        cleanedRequest.setName(categoryName);
+        cleanedRequest.setDescription(request.getDescription());
+
+        categoryMapper.updateEntity(category, cleanedRequest);
+
+        Category updatedCategory = categoryRepository.save(category);
+
+        return categoryMapper.toResponse(updatedCategory);
+    }
+
+    public void deleteCategory(Long id) {
+
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        if (productRepository.existsByCategoryId(id)) {
+            throw new BusinessException(
+                    "Category cannot be deleted because it contains products"
+            );
+        }
+
+        categoryRepository.delete(category);
     }
 }
