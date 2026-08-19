@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/trendai/trendai.iml" filepath="$PROJECT_DIR$/trendai/trendai.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/trendai (1).iml" filepath="$PROJECT_DIR$/.idea/trendai (1).iml" />
     </modules>
   </component>
