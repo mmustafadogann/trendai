@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 @Entity
 @Table(
@@ -46,7 +47,7 @@ public class User {
         updatedAt = now;
 
         if (email != null) {
-            email = email.trim().toLowerCase();
+            email = email.trim().toLowerCase(Locale.ROOT);
         }
     }
 
@@ -55,7 +56,7 @@ public class User {
         updatedAt = LocalDateTime.now();
 
         if (email != null) {
-            email = email.trim().toLowerCase();
+            email = email.trim().toLowerCase(Locale.ROOT);
         }
     }
 }

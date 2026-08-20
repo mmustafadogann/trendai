@@ -9,6 +9,7 @@ import com.trendai.trendai.mapper.UserMapper;
 import com.trendai.trendai.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import com.trendai.trendai.exception.BusinessException;
+import java.util.Locale;
 
 @Service
 public class UserService {
@@ -26,7 +27,7 @@ public class UserService {
 
     public UserResponse createUser(CreateUserRequest request) {
 
-        String email = request.getEmail().trim().toLowerCase();
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
 
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new BusinessException("Email already exists");
