@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.trendai.trendai.exception.BusinessException;
 import com.trendai.trendai.exception.ResourceNotFoundException;
+import com.trendai.trendai.dto.UpdateCartItemQuantityRequest;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -335,5 +336,373 @@ class CartServiceTest {
         );
 
         assertEquals("Insufficient stock", exception.getMessage());
+    }
+
+    @Test
+    void testUpdateItemQuantity() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        Product product = new Product();
+        product.setId(20L);
+        product.setStock(10);
+        product.setPrice(new BigDecimal("1000"));
+
+        CartItem cartItem = new CartItem();
+        cartItem.setId(100L);
+        cartItem.setCart(cart);
+        cartItem.setProduct(product);
+        cartItem.setQuantity(2);
+        cartItem.setUnitPrice(new BigDecimal("1000"));
+
+        UpdateCartItemQuantityRequest request =
+                new UpdateCartItemQuantityRequest();
+
+        request.setQuantity(5);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        when(cartItemRepository.findById(100L))
+                .thenReturn(Optional.of(cartItem));
+
+        when(cartItemRepository.save(cartItem))
+                .thenReturn(cartItem);
+
+        cartService.updateItemQuantity(10L, 100L, request);
+
+        assertEquals(5, cartItem.getQuantity());
+
+        verify(cartItemRepository).save(cartItem);
+    }
+
+    @Test
+    void testUpdateItemQuantityExceedsStock() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        Product product = new Product();
+        product.setId(20L);
+        product.setStock(5);
+        product.setPrice(new BigDecimal("1000"));
+
+        CartItem cartItem = new CartItem();
+        cartItem.setId(100L);
+        cartItem.setCart(cart);
+        cartItem.setProduct(product);
+        cartItem.setQuantity(2);
+        cartItem.setUnitPrice(new BigDecimal("1000"));
+
+        UpdateCartItemQuantityRequest request =
+                new UpdateCartItemQuantityRequest();
+
+        request.setQuantity(6);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        when(cartItemRepository.findById(100L))
+                .thenReturn(Optional.of(cartItem));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> cartService.updateItemQuantity(10L, 100L, request)
+        );
+
+        assertEquals("Insufficient stock", exception.getMessage());
+    }
+
+    @Test
+    void testUpdateItemDoesNotBelongToCart() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        Cart anotherCart = new Cart();
+        anotherCart.setId(20L);
+        anotherCart.setUser(user);
+        anotherCart.setStatus(CartStatus.ACTIVE);
+
+        Product product = new Product();
+        product.setId(30L);
+        product.setStock(10);
+        product.setPrice(new BigDecimal("1000"));
+
+        CartItem cartItem = new CartItem();
+        cartItem.setId(100L);
+        cartItem.setCart(anotherCart);
+        cartItem.setProduct(product);
+        cartItem.setQuantity(2);
+        cartItem.setUnitPrice(new BigDecimal("1000"));
+
+        UpdateCartItemQuantityRequest request =
+                new UpdateCartItemQuantityRequest();
+
+        request.setQuantity(5);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        when(cartItemRepository.findById(100L))
+                .thenReturn(Optional.of(cartItem));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> cartService.updateItemQuantity(10L, 100L, request)
+        );
+
+        assertEquals(
+                "Cart item does not belong to this cart",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void testUpdateItemCartNotFound() {
+
+        UpdateCartItemQuantityRequest request =
+                new UpdateCartItemQuantityRequest();
+
+        request.setQuantity(5);
+
+        when(cartRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> cartService.updateItemQuantity(999L, 100L, request)
+        );
+
+        assertEquals(
+                "Cart not found",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void testUpdateItemQuantityInactiveCart() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ORDERED);
+
+        UpdateCartItemQuantityRequest request =
+                new UpdateCartItemQuantityRequest();
+
+        request.setQuantity(5);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> cartService.updateItemQuantity(10L, 100L, request)
+        );
+
+        assertEquals(
+                "Cart is not active",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void testDeleteItem() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        Product product = new Product();
+        product.setId(20L);
+        product.setStock(10);
+
+        CartItem cartItem = new CartItem();
+        cartItem.setId(100L);
+        cartItem.setCart(cart);
+        cartItem.setProduct(product);
+        cartItem.setQuantity(2);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        when(cartItemRepository.findById(100L))
+                .thenReturn(Optional.of(cartItem));
+
+        cartService.deleteItem(10L, 100L);
+
+        verify(cartItemRepository).delete(cartItem);
+    }
+
+    @Test
+    void testDeleteItemDoesNotBelongToCart() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        Cart anotherCart = new Cart();
+        anotherCart.setId(20L);
+        anotherCart.setUser(user);
+        anotherCart.setStatus(CartStatus.ACTIVE);
+
+        CartItem cartItem = new CartItem();
+        cartItem.setId(100L);
+        cartItem.setCart(anotherCart);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        when(cartItemRepository.findById(100L))
+                .thenReturn(Optional.of(cartItem));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> cartService.deleteItem(10L, 100L)
+        );
+
+        assertEquals(
+                "Cart item does not belong to this cart",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void testDeleteItemCartNotFound() {
+
+        when(cartRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> cartService.deleteItem(999L, 100L)
+        );
+
+        assertEquals(
+                "Cart not found",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void testDeleteItemNotFound() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        when(cartItemRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> cartService.deleteItem(10L, 999L)
+        );
+
+        assertEquals(
+                "Cart item not found",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void testDeleteItemFromInactiveCart() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ORDERED);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> cartService.deleteItem(10L, 100L)
+        );
+
+        assertEquals(
+                "Cart is not active",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void testDeleteLastItemDoesNotDeleteCart() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        CartItem cartItem = new CartItem();
+        cartItem.setId(100L);
+        cartItem.setCart(cart);
+        cartItem.setQuantity(1);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        when(cartItemRepository.findById(100L))
+                .thenReturn(Optional.of(cartItem));
+
+        cartService.deleteItem(10L, 100L);
+
+        verify(cartItemRepository).delete(cartItem);
+
+        org.mockito.Mockito.verify(
+                cartRepository,
+                org.mockito.Mockito.never()
+        ).delete(cart);
     }
 }

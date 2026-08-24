@@ -2,6 +2,7 @@ package com.trendai.trendai.service;
 
 import com.trendai.trendai.dto.CartItemResponse;
 import com.trendai.trendai.dto.CartResponse;
+import com.trendai.trendai.dto.UpdateCartItemQuantityRequest;
 import com.trendai.trendai.entity.Cart;
 import com.trendai.trendai.entity.CartItem;
 import com.trendai.trendai.entity.CartStatus;
@@ -163,4 +164,63 @@ public class CartService {
 
         return response;
     }
+    @Transactional
+    public CartResponse updateItemQuantity(
+            Long cartId,
+            Long itemId,
+            UpdateCartItemQuantityRequest request
+    ) {
+
+        Cart cart = cartRepository.findById(cartId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Cart not found"));
+
+        if (cart.getStatus() != CartStatus.ACTIVE) {
+            throw new BusinessException("Cart is not active");
+        }
+
+        CartItem cartItem = cartItemRepository.findById(itemId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Cart item not found"));
+
+        if (!cartItem.getCart().getId().equals(cartId)) {
+            throw new BusinessException("Cart item does not belong to this cart");
+        }
+
+        if (request.getQuantity() == null || request.getQuantity() < 1) {
+            throw new BusinessException("Quantity must be at least 1");
+        }
+
+        if (request.getQuantity() > cartItem.getProduct().getStock()) {
+            throw new BusinessException("Insufficient stock");
+        }
+
+        cartItem.setQuantity(request.getQuantity());
+
+        cartItemRepository.save(cartItem);
+
+        return toResponse(cart);
+    }
+    @Transactional
+    public void deleteItem(Long cartId, Long itemId) {
+
+        Cart cart = cartRepository.findById(cartId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Cart not found"));
+
+        if (cart.getStatus() != CartStatus.ACTIVE) {
+            throw new BusinessException("Cart is not active");
+        }
+
+        CartItem cartItem = cartItemRepository.findById(itemId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Cart item not found"));
+
+        if (!cartItem.getCart().getId().equals(cartId)) {
+            throw new BusinessException("Cart item does not belong to this cart");
+        }
+
+        cartItemRepository.delete(cartItem);
+    }
+
 }
