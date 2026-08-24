@@ -2,6 +2,7 @@ package com.trendai.trendai.controller;
 
 import com.trendai.trendai.dto.AddCartItemRequest;
 import com.trendai.trendai.dto.CartResponse;
+import com.trendai.trendai.dto.UpdateCartItemQuantityRequest;
 import com.trendai.trendai.service.CartService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,5 +26,25 @@ public class CartItemController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(cartService.addItem(cartId, request));
+    }
+    @PatchMapping("/{itemId}")
+    public ResponseEntity<CartResponse> updateItemQuantity(
+            @PathVariable Long cartId,
+            @PathVariable Long itemId,
+            @Valid @RequestBody UpdateCartItemQuantityRequest request
+    ) {
+        return ResponseEntity.ok(
+                cartService.updateItemQuantity(cartId, itemId, request)
+        );
+    }
+
+    @DeleteMapping("/{itemId}")
+    public ResponseEntity<Void> deleteItem(
+            @PathVariable Long cartId,
+            @PathVariable Long itemId
+    ) {
+        cartService.deleteItem(cartId, itemId);
+
+        return ResponseEntity.noContent().build();
     }
 }
