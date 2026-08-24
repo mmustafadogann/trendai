@@ -9,10 +9,10 @@ import lombok.Setter;
 @Setter
 public class AddCartItemRequest {
 
-    @NotNull
+    @NotNull(message = "Product ID cannot be null")
     private Long productId;
 
-    @NotNull
-    @Min(1)
+    @NotNull(message = "Quantity cannot be null")
+    @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;
 }
