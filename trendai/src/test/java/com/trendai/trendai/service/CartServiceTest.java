@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.trendai.trendai.exception.BusinessException;
 import com.trendai.trendai.exception.ResourceNotFoundException;
 import com.trendai.trendai.dto.UpdateCartItemQuantityRequest;
+import com.trendai.trendai.dto.CartResponse;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -704,5 +705,202 @@ class CartServiceTest {
                 cartRepository,
                 org.mockito.Mockito.never()
         ).delete(cart);
+    }
+
+    @Test
+    void testGetOrCreateCartCreatesNewCart() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        when(userRepository.findByIdAndActiveTrue(1L))
+                .thenReturn(Optional.of(user));
+
+        when(cartRepository.findByUserIdAndStatus(
+                1L,
+                CartStatus.ACTIVE
+        )).thenReturn(Optional.empty());
+
+        Cart savedCart = new Cart();
+        savedCart.setId(10L);
+        savedCart.setUser(user);
+        savedCart.setStatus(CartStatus.ACTIVE);
+
+        when(cartRepository.save(any(Cart.class)))
+                .thenReturn(savedCart);
+
+        CartResponse response = new CartResponse();
+        response.setId(10L);
+        response.setUserId(1L);
+        response.setStatus(CartStatus.ACTIVE);
+        response.setTotalAmount(BigDecimal.ZERO);
+
+        when(cartItemRepository.findByCartId(10L))
+                .thenReturn(java.util.Collections.emptyList());
+
+        CartResponse result = cartService.getOrCreateCart(1L);
+
+        assertEquals(10L, result.getId());
+        assertEquals(1L, result.getUserId());
+        assertEquals(CartStatus.ACTIVE, result.getStatus());
+        assertEquals(BigDecimal.ZERO, result.getTotalAmount());
+
+        verify(cartRepository).save(any(Cart.class));
+    }
+
+    @Test
+    void testGetOrCreateCartReturnsExistingActiveCart() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart existingCart = new Cart();
+        existingCart.setId(10L);
+        existingCart.setUser(user);
+        existingCart.setStatus(CartStatus.ACTIVE);
+
+        when(userRepository.findByIdAndActiveTrue(1L))
+                .thenReturn(Optional.of(user));
+
+        when(cartRepository.findByUserIdAndStatus(
+                1L,
+                CartStatus.ACTIVE
+        )).thenReturn(Optional.of(existingCart));
+
+        when(cartItemRepository.findByCartId(10L))
+                .thenReturn(java.util.Collections.emptyList());
+
+        CartResponse result = cartService.getOrCreateCart(1L);
+
+        assertEquals(10L, result.getId());
+        assertEquals(1L, result.getUserId());
+        assertEquals(CartStatus.ACTIVE, result.getStatus());
+        assertEquals(BigDecimal.ZERO, result.getTotalAmount());
+
+        verify(cartRepository, org.mockito.Mockito.never())
+                .save(any(Cart.class));
+    }
+
+    @Test
+    void testAddInactiveProduct() {
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        AddCartItemRequest request = new AddCartItemRequest();
+        request.setProductId(20L);
+        request.setQuantity(2);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        when(productRepository.findByIdAndActiveTrue(20L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> cartService.addItem(10L, request)
+        );
+
+        assertEquals(
+                "Product not found",
+                exception.getMessage()
+        );
+
+        verify(cartItemRepository,
+                org.mockito.Mockito.never())
+                .save(any(CartItem.class));
+    }
+
+    @Test
+    void testAddNonExistingProductDoesNotSaveItem() {
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        AddCartItemRequest request = new AddCartItemRequest();
+        request.setProductId(999L);
+        request.setQuantity(2);
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        when(productRepository.findByIdAndActiveTrue(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> cartService.addItem(10L, request)
+        );
+
+        assertEquals(
+                "Product not found",
+                exception.getMessage()
+        );
+
+        verify(cartItemRepository,
+                org.mockito.Mockito.never())
+                .save(any(CartItem.class));
+    }
+
+    @Test
+    void testCartTotalIsCalculatedCorrectly() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        Product product1 = new Product();
+        product1.setId(20L);
+        product1.setName("Product 1");
+
+        Product product2 = new Product();
+        product2.setId(30L);
+        product2.setName("Product 2");
+
+        CartItem item1 = new CartItem();
+        item1.setId(100L);
+        item1.setCart(cart);
+        item1.setProduct(product1);
+        item1.setQuantity(2);
+        item1.setUnitPrice(new BigDecimal("100"));
+
+        CartItem item2 = new CartItem();
+        item2.setId(101L);
+        item2.setCart(cart);
+        item2.setProduct(product2);
+        item2.setQuantity(3);
+        item2.setUnitPrice(new BigDecimal("50"));
+
+        when(userRepository.findByIdAndActiveTrue(1L))
+                .thenReturn(Optional.of(user));
+
+        when(cartRepository.findByUserIdAndStatus(
+                1L,
+                CartStatus.ACTIVE
+        )).thenReturn(Optional.of(cart));
+
+        when(cartItemRepository.findByCartId(10L))
+                .thenReturn(java.util.List.of(item1, item2));
+
+        CartResponse result = cartService.getOrCreateCart(1L);
+
+        assertEquals(
+                new BigDecimal("350"),
+                result.getTotalAmount()
+        );
+
+        assertEquals(2, result.getItems().size());
+
+        verify(cartItemRepository).findByCartId(10L);
     }
 }
