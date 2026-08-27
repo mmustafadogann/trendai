@@ -19,6 +19,8 @@ import com.trendai.trendai.repository.ProductRepository;
 import com.trendai.trendai.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -136,5 +138,31 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         return orderMapper.toResponse(savedOrder);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderResponse getOrder(Long orderId, Long userId) {
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Order not found"));
+
+        if (!order.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException("Order not found");
+        }
+
+        return orderMapper.toResponse(order);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getUserOrders(
+            Long userId,
+            Pageable pageable
+    ) {
+
+        Page<Order> orders =
+                orderRepository.findAllByUserId(userId, pageable);
+
+        return orders.map(orderMapper::toResponse);
     }
 }
