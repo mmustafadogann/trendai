@@ -1,6 +1,5 @@
 package com.trendai.trendai.service;
 
-import com.trendai.trendai.dto.OrderItemResponse;
 import com.trendai.trendai.dto.OrderResponse;
 import com.trendai.trendai.entity.Cart;
 import com.trendai.trendai.entity.CartItem;
@@ -12,6 +11,7 @@ import com.trendai.trendai.entity.Product;
 import com.trendai.trendai.entity.User;
 import com.trendai.trendai.exception.BusinessException;
 import com.trendai.trendai.exception.ResourceNotFoundException;
+import com.trendai.trendai.mapper.OrderMapper;
 import com.trendai.trendai.repository.CartItemRepository;
 import com.trendai.trendai.repository.CartRepository;
 import com.trendai.trendai.repository.OrderRepository;
@@ -32,19 +32,22 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final OrderMapper orderMapper;
 
     public OrderService(
             CartRepository cartRepository,
             CartItemRepository cartItemRepository,
             ProductRepository productRepository,
             UserRepository userRepository,
-            OrderRepository orderRepository
+            OrderRepository orderRepository,
+            OrderMapper orderMapper
     ) {
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
+        this.orderMapper = orderMapper;
     }
 
     @Transactional
@@ -132,41 +135,6 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        return toResponse(savedOrder);
-    }
-
-    private OrderResponse toResponse(Order order) {
-
-        OrderResponse response = new OrderResponse();
-
-        response.setId(order.getId());
-        response.setUserId(order.getUser().getId());
-        response.setStatus(order.getStatus());
-        response.setTotalAmount(order.getTotalAmount());
-        response.setCreatedAt(order.getCreatedAt());
-        response.setUpdatedAt(order.getUpdatedAt());
-
-        List<OrderItemResponse> items = order.getItems()
-                .stream()
-                .map(this::toItemResponse)
-                .toList();
-
-        response.setItems(items);
-
-        return response;
-    }
-
-    private OrderItemResponse toItemResponse(OrderItem item) {
-
-        OrderItemResponse response = new OrderItemResponse();
-
-        response.setId(item.getId());
-        response.setProductId(item.getProductId());
-        response.setProductName(item.getProductName());
-        response.setQuantity(item.getQuantity());
-        response.setUnitPrice(item.getUnitPrice());
-        response.setLineTotal(item.getLineTotal());
-
-        return response;
+        return orderMapper.toResponse(savedOrder);
     }
 }
