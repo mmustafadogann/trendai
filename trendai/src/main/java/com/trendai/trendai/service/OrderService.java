@@ -18,10 +18,10 @@ import com.trendai.trendai.repository.CartRepository;
 import com.trendai.trendai.repository.OrderRepository;
 import com.trendai.trendai.repository.ProductRepository;
 import com.trendai.trendai.repository.UserRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -54,11 +54,18 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse checkout(Long cartId) {
+    public OrderResponse checkout(Long cartId, Long userId) {
 
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Cart not found"));
+
+        if (cart.getUser() == null ||
+                !cart.getUser().getId().equals(userId)) {
+            throw new BusinessException(
+                    "Cart does not belong to this user"
+            );
+        }
 
         if (cart.getStatus() != CartStatus.ACTIVE) {
             throw new BusinessException("Cart is not active");
@@ -66,7 +73,7 @@ public class OrderService {
 
         User user = cart.getUser();
 
-        if (user == null || !user.isActive()) {
+        if (!user.isActive()) {
             throw new ResourceNotFoundException("User not found");
         }
 
@@ -92,7 +99,9 @@ public class OrderService {
                             cartItem.getProduct().getId()
                     )
                     .orElseThrow(() ->
-                            new ResourceNotFoundException("Product not found"));
+                            new ResourceNotFoundException(
+                                    "Product not found"
+                            ));
 
             if (cartItem.getQuantity() > product.getStock()) {
                 throw new BusinessException("Insufficient stock");
@@ -171,6 +180,7 @@ public class OrderService {
             Long orderId,
             UpdateOrderStatusRequest request
     ) {
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Order not found"));
@@ -179,7 +189,9 @@ public class OrderService {
         OrderStatus newStatus = request.getStatus();
 
         if (!isValidTransition(currentStatus, newStatus)) {
-            throw new BusinessException("Invalid order status transition");
+            throw new BusinessException(
+                    "Invalid order status transition"
+            );
         }
 
         order.setStatus(newStatus);
