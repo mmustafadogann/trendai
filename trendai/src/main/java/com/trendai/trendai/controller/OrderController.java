@@ -1,6 +1,7 @@
 package com.trendai.trendai.controller;
 
 import com.trendai.trendai.dto.OrderResponse;
+import com.trendai.trendai.dto.UpdateOrderStatusRequest;
 import com.trendai.trendai.service.OrderService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,7 +36,6 @@ public class OrderController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-
         Pageable pageable = PageRequest.of(
                 page,
                 size,
@@ -44,6 +44,16 @@ public class OrderController {
 
         return ResponseEntity.ok(
                 orderService.getUserOrders(userId, pageable)
+        );
+    }
+
+    @PatchMapping("/orders/{orderId}/status")
+    public ResponseEntity<OrderResponse> updateStatus(
+            @PathVariable Long orderId,
+            @RequestBody UpdateOrderStatusRequest request
+    ) {
+        return ResponseEntity.ok(
+                orderService.updateStatus(orderId, request)
         );
     }
 }
