@@ -1,6 +1,7 @@
 package com.trendai.trendai.service;
 
 import com.trendai.trendai.dto.OrderResponse;
+import com.trendai.trendai.dto.UpdateOrderStatusRequest;
 import com.trendai.trendai.entity.Cart;
 import com.trendai.trendai.entity.CartItem;
 import com.trendai.trendai.entity.CartStatus;
@@ -164,5 +165,39 @@ public class OrderService {
                 orderRepository.findAllByUserId(userId, pageable);
 
         return orders.map(orderMapper::toResponse);
+    }
+
+    public OrderResponse updateStatus(
+            Long orderId,
+            UpdateOrderStatusRequest request
+    ) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Order not found"));
+
+        OrderStatus currentStatus = order.getStatus();
+        OrderStatus newStatus = request.getStatus();
+
+        if (!isValidTransition(currentStatus, newStatus)) {
+            throw new BusinessException("Invalid order status transition");
+        }
+
+        order.setStatus(newStatus);
+
+        Order savedOrder = orderRepository.save(order);
+
+        return orderMapper.toResponse(savedOrder);
+    }
+
+    private boolean isValidTransition(
+            OrderStatus currentStatus,
+            OrderStatus newStatus
+    ) {
+        return (currentStatus == OrderStatus.CREATED
+                && newStatus == OrderStatus.PREPARING)
+                || (currentStatus == OrderStatus.PREPARING
+                && newStatus == OrderStatus.SHIPPED)
+                || (currentStatus == OrderStatus.SHIPPED
+                && newStatus == OrderStatus.DELIVERED);
     }
 }
