@@ -56,11 +56,12 @@ public class CartService {
     }
     @Transactional
     public CartResponse addItem(
-            Long cartId,
+            Long userId,
             AddCartItemRequest request
     ) {
 
-        Cart cart = cartRepository.findById(cartId)
+        Cart cart = cartRepository
+                .findByUserIdAndStatus(userId, CartStatus.ACTIVE)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Cart not found"));
 
@@ -79,7 +80,7 @@ public class CartService {
 
         Optional<CartItem> existingItem =
                 cartItemRepository.findByCartIdAndProductId(
-                        cartId,
+                        cart.getId(),
                         product.getId()
                 );
 

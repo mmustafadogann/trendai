@@ -1,11 +1,11 @@
 package com.trendai.trendai.controller;
 
+import com.trendai.trendai.dto.AddCartItemRequest;
 import com.trendai.trendai.dto.CartResponse;
 import com.trendai.trendai.service.CartService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.trendai.trendai.dto.AddCartItemRequest;
 
 @RestController
 @RequestMapping("/api/users/{userId}/cart")
@@ -36,10 +36,10 @@ public class CartController {
 
     @PostMapping("/items")
     public ResponseEntity<CartResponse> addItem(
-            @PathVariable Long cartId,
+            @PathVariable Long userId,
             @RequestBody AddCartItemRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(cartService.addItem(cartId, request));
+                .body(cartService.addItem(userId, request));
     }
 }
