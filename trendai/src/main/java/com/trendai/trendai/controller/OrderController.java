@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +19,19 @@ public class OrderController {
 
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
+    }
+
+    @PostMapping("/users/{userId}/carts/{cartId}/checkout")
+    public ResponseEntity<OrderResponse> checkout(
+            @PathVariable Long userId,
+            @PathVariable Long cartId
+    ) {
+        OrderResponse response =
+                orderService.checkout(cartId, userId);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
 
     @GetMapping("/orders/{orderId}")
