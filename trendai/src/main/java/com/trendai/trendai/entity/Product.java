@@ -36,6 +36,9 @@ public class Product {
     @Column(nullable = false)
     private Integer stock;
 
+    @Version
+    private Long version;
+
     private String imageUrl;
 
     @Column(nullable = false)

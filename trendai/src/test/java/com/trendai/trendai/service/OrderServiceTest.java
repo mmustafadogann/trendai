@@ -1241,4 +1241,59 @@ class OrderServiceTest {
                 order3.getStatus()
         );
     }
+
+    @Test
+    void testCheckoutOptimisticLockingFailure() {
+
+        User user = new User();
+        user.setId(1L);
+        user.setActive(true);
+
+        Cart cart = new Cart();
+        cart.setId(10L);
+        cart.setUser(user);
+        cart.setStatus(CartStatus.ACTIVE);
+
+        Product product = new Product();
+        product.setId(2L);
+        product.setName("Test Product");
+        product.setPrice(new BigDecimal("100.00"));
+        product.setStock(1);
+        product.setActive(true);
+        product.setVersion(1L);
+
+        CartItem cartItem = new CartItem();
+        cartItem.setId(100L);
+        cartItem.setCart(cart);
+        cartItem.setProduct(product);
+        cartItem.setQuantity(1);
+        cartItem.setUnitPrice(new BigDecimal("100.00"));
+
+        when(cartRepository.findById(10L))
+                .thenReturn(Optional.of(cart));
+
+        when(cartItemRepository.findByCartId(10L))
+                .thenReturn(List.of(cartItem));
+
+        when(productRepository.findByIdAndActiveTrue(2L))
+                .thenReturn(Optional.of(product));
+
+        when(productRepository.save(any(Product.class)))
+                .thenThrow(
+                        new org.springframework.orm.ObjectOptimisticLockingFailureException(
+                                Product.class,
+                                2L
+                        )
+                );
+
+        assertThrows(
+                org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+                () -> orderService.checkout(10L, 1L)
+        );
+
+        verify(productRepository).save(product);
+
+        verify(orderRepository, never())
+                .save(any(Order.class));
+    }
 }
