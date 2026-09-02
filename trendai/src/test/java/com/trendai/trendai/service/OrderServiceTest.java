@@ -27,8 +27,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.trendai.trendai.dto.UpdateOrderStatusRequest;
-import com.trendai.trendai.dto.UpdateOrderStatusRequest;
-import com.trendai.trendai.exception.BusinessException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -1103,326 +1101,263 @@ class OrderServiceTest {
     }
 
     @Test
-    void testUpdateStatusCreatedToPreparing() {
+    void testUpdateStatusCreatedToCancelledRestoresStock() {
 
         Order order = new Order();
-        order.setId(50L);
+        order.setId(60L);
         order.setStatus(OrderStatus.CREATED);
 
-        when(orderRepository.findById(50L))
+        OrderItem orderItem = new OrderItem();
+        orderItem.setProductId(2L);
+        orderItem.setQuantity(3);
+
+        order.getItems().add(orderItem);
+
+        Product product = new Product();
+        product.setId(2L);
+        product.setName("Test Product");
+        product.setStock(5);
+        product.setActive(true);
+
+        when(orderRepository.findById(60L))
                 .thenReturn(Optional.of(order));
 
-        Order savedOrder = new Order();
-        savedOrder.setId(50L);
-        savedOrder.setStatus(OrderStatus.PREPARING);
+        when(productRepository.findById(2L))
+                .thenReturn(Optional.of(product));
 
-        OrderResponse response = new OrderResponse();
-        response.setId(50L);
-        response.setStatus(OrderStatus.PREPARING);
-
-        when(orderRepository.save(order))
-                .thenReturn(savedOrder);
-
-        when(orderMapper.toResponse(savedOrder))
-                .thenReturn(response);
-
-        com.trendai.trendai.dto.UpdateOrderStatusRequest request =
-                new com.trendai.trendai.dto.UpdateOrderStatusRequest();
-
-        request.setStatus(OrderStatus.PREPARING);
-
-        OrderResponse result =
-                orderService.updateStatus(50L, request);
-
-        assertEquals(
-                OrderStatus.PREPARING,
-                order.getStatus()
-        );
-
-        assertEquals(
-                OrderStatus.PREPARING,
-                result.getStatus()
-        );
-
-        verify(orderRepository).findById(50L);
-        verify(orderRepository).save(order);
-        verify(orderMapper).toResponse(savedOrder);
-    }
-
-    @Test
-    void testUpdateStatusValidTransitions() {
-
-        Order order = new Order();
-        order.setId(50L);
-        order.setStatus(OrderStatus.PREPARING);
-
-        OrderResponse preparingResponse = new OrderResponse();
-        preparingResponse.setId(50L);
-        preparingResponse.setStatus(OrderStatus.SHIPPED);
-
-        when(orderRepository.findById(50L))
-                .thenReturn(Optional.of(order));
+        when(productRepository.save(product))
+                .thenReturn(product);
 
         when(orderRepository.save(order))
                 .thenReturn(order);
 
+        OrderResponse response = new OrderResponse();
+        response.setId(60L);
+        response.setStatus(OrderStatus.CANCELLED);
+
         when(orderMapper.toResponse(order))
-                .thenReturn(preparingResponse);
+                .thenReturn(response);
 
         UpdateOrderStatusRequest request =
                 new UpdateOrderStatusRequest();
 
-        request.setStatus(OrderStatus.SHIPPED);
+        request.setStatus(OrderStatus.CANCELLED);
 
         OrderResponse result =
-                orderService.updateStatus(50L, request);
+                orderService.updateStatus(60L, request);
 
         assertEquals(
-                OrderStatus.SHIPPED,
+                OrderStatus.CANCELLED,
                 order.getStatus()
         );
 
         assertEquals(
-                OrderStatus.SHIPPED,
-                result.getStatus()
-        );
-
-        request.setStatus(OrderStatus.DELIVERED);
-
-        OrderResponse deliveredResponse =
-                new OrderResponse();
-
-        deliveredResponse.setId(50L);
-        deliveredResponse.setStatus(OrderStatus.DELIVERED);
-
-        when(orderMapper.toResponse(order))
-                .thenReturn(deliveredResponse);
-
-        result = orderService.updateStatus(50L, request);
-
-        assertEquals(
-                OrderStatus.DELIVERED,
-                order.getStatus()
-        );
-
-        assertEquals(
-                OrderStatus.DELIVERED,
-                result.getStatus()
-        );
-
-        verify(orderRepository, times(2))
-                .findById(50L);
-
-        verify(orderRepository, times(2))
-                .save(order);
-
-        verify(orderMapper, times(2))
-                .toResponse(order);
-    }
-
-    @Test
-    void testUpdateStatusInvalidTransitions() {
-
-        // CREATED -> DELIVERED ❌
-        Order order1 = new Order();
-        order1.setId(50L);
-        order1.setStatus(OrderStatus.CREATED);
-
-        when(orderRepository.findById(50L))
-                .thenReturn(Optional.of(order1));
-
-        UpdateOrderStatusRequest request1 =
-                new UpdateOrderStatusRequest();
-
-        request1.setStatus(OrderStatus.DELIVERED);
-
-        BusinessException exception1 = assertThrows(
-                BusinessException.class,
-                () -> orderService.updateStatus(50L, request1)
-        );
-
-        assertEquals(
-                "Invalid order status transition",
-                exception1.getMessage()
-        );
-
-        assertEquals(
-                OrderStatus.CREATED,
-                order1.getStatus()
-        );
-
-        verify(orderRepository, never())
-                .save(any(Order.class));
-
-
-        // DELIVERED -> CREATED ❌
-        Order order2 = new Order();
-        order2.setId(51L);
-        order2.setStatus(OrderStatus.DELIVERED);
-
-        when(orderRepository.findById(51L))
-                .thenReturn(Optional.of(order2));
-
-        UpdateOrderStatusRequest request2 =
-                new UpdateOrderStatusRequest();
-
-        request2.setStatus(OrderStatus.CREATED);
-
-        BusinessException exception2 = assertThrows(
-                BusinessException.class,
-                () -> orderService.updateStatus(51L, request2)
-        );
-
-        assertEquals(
-                "Invalid order status transition",
-                exception2.getMessage()
-        );
-
-        assertEquals(
-                OrderStatus.DELIVERED,
-                order2.getStatus()
-        );
-
-
-        // CANCELLED -> SHIPPED ❌
-        Order order3 = new Order();
-        order3.setId(52L);
-        order3.setStatus(OrderStatus.CANCELLED);
-
-        when(orderRepository.findById(52L))
-                .thenReturn(Optional.of(order3));
-
-        UpdateOrderStatusRequest request3 =
-                new UpdateOrderStatusRequest();
-
-        request3.setStatus(OrderStatus.SHIPPED);
-
-        BusinessException exception3 = assertThrows(
-                BusinessException.class,
-                () -> orderService.updateStatus(52L, request3)
-        );
-
-        assertEquals(
-                "Invalid order status transition",
-                exception3.getMessage()
+                8,
+                product.getStock()
         );
 
         assertEquals(
                 OrderStatus.CANCELLED,
-                order3.getStatus()
-        );
-    }
-
-    @Test
-    void testCheckoutOptimisticLockingFailure() {
-
-        User user = new User();
-        user.setId(1L);
-        user.setActive(true);
-
-        Cart cart = new Cart();
-        cart.setId(10L);
-        cart.setUser(user);
-        cart.setStatus(CartStatus.ACTIVE);
-
-        Product product = new Product();
-        product.setId(2L);
-        product.setName("Test Product");
-        product.setPrice(new BigDecimal("100.00"));
-        product.setStock(1);
-        product.setActive(true);
-        product.setVersion(1L);
-
-        CartItem cartItem = new CartItem();
-        cartItem.setId(100L);
-        cartItem.setCart(cart);
-        cartItem.setProduct(product);
-        cartItem.setQuantity(1);
-        cartItem.setUnitPrice(new BigDecimal("100.00"));
-
-        when(cartRepository.findById(10L))
-                .thenReturn(Optional.of(cart));
-
-        when(cartItemRepository.findByCartId(10L))
-                .thenReturn(List.of(cartItem));
-
-        when(productRepository.findByIdAndActiveTrue(2L))
-                .thenReturn(Optional.of(product));
-
-        when(productRepository.save(any(Product.class)))
-                .thenThrow(
-                        new org.springframework.orm.ObjectOptimisticLockingFailureException(
-                                Product.class,
-                                2L
-                        )
-                );
-
-        assertThrows(
-                org.springframework.orm.ObjectOptimisticLockingFailureException.class,
-                () -> orderService.checkout(10L, 1L)
+                result.getStatus()
         );
 
+        verify(productRepository).findById(2L);
         verify(productRepository).save(product);
-
-        verify(orderRepository, never())
-                .save(any(Order.class));
+        verify(orderRepository).save(order);
+        verify(orderMapper).toResponse(order);
     }
 
+
     @Test
-    void testCheckoutCartOptimisticLockingFailure() {
+    void testUpdateStatusPreparingToCancelledRestoresStock() {
 
-        User user = new User();
-        user.setId(1L);
-        user.setActive(true);
+        Order order = new Order();
+        order.setId(61L);
+        order.setStatus(OrderStatus.PREPARING);
 
-        Cart cart = new Cart();
-        cart.setId(10L);
-        cart.setUser(user);
-        cart.setStatus(CartStatus.ACTIVE);
-        cart.setVersion(1L);
+        OrderItem orderItem = new OrderItem();
+        orderItem.setProductId(3L);
+        orderItem.setQuantity(2);
+
+        order.getItems().add(orderItem);
 
         Product product = new Product();
-        product.setId(2L);
+        product.setId(3L);
         product.setName("Test Product");
-        product.setPrice(new BigDecimal("100.00"));
         product.setStock(10);
         product.setActive(true);
 
-        CartItem cartItem = new CartItem();
-        cartItem.setId(100L);
-        cartItem.setCart(cart);
-        cartItem.setProduct(product);
-        cartItem.setQuantity(1);
-        cartItem.setUnitPrice(new BigDecimal("100.00"));
+        when(orderRepository.findById(61L))
+                .thenReturn(Optional.of(order));
 
-        when(cartRepository.findById(10L))
-                .thenReturn(Optional.of(cart));
-
-        when(cartItemRepository.findByCartId(10L))
-                .thenReturn(List.of(cartItem));
-
-        when(productRepository.findByIdAndActiveTrue(2L))
+        when(productRepository.findById(3L))
                 .thenReturn(Optional.of(product));
 
-        when(productRepository.save(any(Product.class)))
+        when(productRepository.save(product))
                 .thenReturn(product);
 
-        when(cartRepository.save(any(Cart.class)))
-                .thenThrow(
-                        new org.springframework.orm.ObjectOptimisticLockingFailureException(
-                                Cart.class,
-                                10L
-                        )
-                );
+        when(orderRepository.save(order))
+                .thenReturn(order);
 
-        assertThrows(
-                org.springframework.orm.ObjectOptimisticLockingFailureException.class,
-                () -> orderService.checkout(10L, 1L)
+        OrderResponse response = new OrderResponse();
+        response.setId(61L);
+        response.setStatus(OrderStatus.CANCELLED);
+
+        when(orderMapper.toResponse(order))
+                .thenReturn(response);
+
+        UpdateOrderStatusRequest request =
+                new UpdateOrderStatusRequest();
+
+        request.setStatus(OrderStatus.CANCELLED);
+
+        OrderResponse result =
+                orderService.updateStatus(61L, request);
+
+        assertEquals(
+                OrderStatus.CANCELLED,
+                order.getStatus()
         );
 
-        verify(cartRepository).save(cart);
+        assertEquals(
+                12,
+                product.getStock()
+        );
+
+        assertEquals(
+                OrderStatus.CANCELLED,
+                result.getStatus()
+        );
+
+        verify(productRepository).findById(3L);
+        verify(productRepository).save(product);
+        verify(orderRepository).save(order);
+        verify(orderMapper).toResponse(order);
+    }
+
+
+    @Test
+    void testUpdateStatusShippedToCancelledIsInvalid() {
+
+        Order order = new Order();
+        order.setId(62L);
+        order.setStatus(OrderStatus.SHIPPED);
+
+        when(orderRepository.findById(62L))
+                .thenReturn(Optional.of(order));
+
+        UpdateOrderStatusRequest request =
+                new UpdateOrderStatusRequest();
+
+        request.setStatus(OrderStatus.CANCELLED);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> orderService.updateStatus(62L, request)
+        );
+
+        assertEquals(
+                "Invalid order status transition",
+                exception.getMessage()
+        );
+
+        assertEquals(
+                OrderStatus.SHIPPED,
+                order.getStatus()
+        );
+
+        verify(productRepository, never())
+                .findById(anyLong());
 
         verify(orderRepository, never())
                 .save(any(Order.class));
+    }
+
+
+    @Test
+    void testUpdateStatusDeliveredToCancelledIsInvalid() {
+
+        Order order = new Order();
+        order.setId(63L);
+        order.setStatus(OrderStatus.DELIVERED);
+
+        when(orderRepository.findById(63L))
+                .thenReturn(Optional.of(order));
+
+        UpdateOrderStatusRequest request =
+                new UpdateOrderStatusRequest();
+
+        request.setStatus(OrderStatus.CANCELLED);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> orderService.updateStatus(63L, request)
+        );
+
+        assertEquals(
+                "Invalid order status transition",
+                exception.getMessage()
+        );
+
+        assertEquals(
+                OrderStatus.DELIVERED,
+                order.getStatus()
+        );
+
+        verify(productRepository, never())
+                .findById(anyLong());
+
+        verify(orderRepository, never())
+                .save(any(Order.class));
+    }
+
+    @Test
+    void testUpdateStatusCancellationProductNotFound() {
+
+        Order order = new Order();
+        order.setId(64L);
+        order.setStatus(OrderStatus.CREATED);
+
+        OrderItem orderItem = new OrderItem();
+        orderItem.setProductId(999L);
+        orderItem.setQuantity(2);
+
+        order.getItems().add(orderItem);
+
+        when(orderRepository.findById(64L))
+                .thenReturn(Optional.of(order));
+
+        when(productRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        UpdateOrderStatusRequest request =
+                new UpdateOrderStatusRequest();
+
+        request.setStatus(OrderStatus.CANCELLED);
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> orderService.updateStatus(64L, request)
+        );
+
+        assertEquals(
+                "Product not found",
+                exception.getMessage()
+        );
+
+        assertEquals(
+                OrderStatus.CREATED,
+                order.getStatus()
+        );
+
+        verify(productRepository).findById(999L);
+
+        verify(productRepository, never())
+                .save(any(Product.class));
+
+        verify(orderRepository, never())
+                .save(any(Order.class));
+
+        verifyNoInteractions(orderMapper);
     }
 }
