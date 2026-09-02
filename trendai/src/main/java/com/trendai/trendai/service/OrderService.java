@@ -22,8 +22,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import jakarta.persistence.OptimisticLockException;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -146,6 +144,7 @@ public class OrderService {
         }
 
         cart.setStatus(CartStatus.ORDERED);
+        cartRepository.save(cart);
 
         Order savedOrder = orderRepository.save(order);
 
