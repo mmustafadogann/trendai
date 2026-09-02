@@ -171,6 +171,10 @@ public class OrderService {
             Pageable pageable
     ) {
 
+        userRepository.findByIdAndActiveTrue(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found"));
+
         Page<Order> orders =
                 orderRepository.findAllByUserId(userId, pageable);
 
