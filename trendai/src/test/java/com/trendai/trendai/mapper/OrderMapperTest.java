@@ -81,5 +81,8 @@ class OrderMapperTest {
                 new BigDecimal("300.00"),
                 response.getItems().get(0).getLineTotal()
         );
+        assertEquals(
+                now, response.getUpdatedAt()
+        );
     }
 }
