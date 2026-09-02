@@ -20,6 +20,7 @@ public class OrderMapper {
         response.setStatus(order.getStatus());
         response.setTotalAmount(order.getTotalAmount());
         response.setCreatedAt(order.getCreatedAt());
+        response.setUpdatedAt(order.getUpdatedAt());
 
         List<OrderItemResponse> items = order.getItems()
                 .stream()
