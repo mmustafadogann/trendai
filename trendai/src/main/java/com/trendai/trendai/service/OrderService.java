@@ -181,6 +181,7 @@ public class OrderService {
         return orders.map(orderMapper::toResponse);
     }
 
+    @Transactional
     public OrderResponse updateStatus(
             Long orderId,
             UpdateOrderStatusRequest request
@@ -199,6 +200,25 @@ public class OrderService {
             );
         }
 
+        if (newStatus == OrderStatus.CANCELLED) {
+
+            for (OrderItem orderItem : order.getItems()) {
+
+                Product product = productRepository
+                        .findById(orderItem.getProductId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Product not found"
+                                ));
+
+                product.setStock(
+                        product.getStock() + orderItem.getQuantity()
+                );
+
+                productRepository.save(product);
+            }
+        }
+
         order.setStatus(newStatus);
 
         Order savedOrder = orderRepository.save(order);
@@ -215,6 +235,10 @@ public class OrderService {
                 || (currentStatus == OrderStatus.PREPARING
                 && newStatus == OrderStatus.SHIPPED)
                 || (currentStatus == OrderStatus.SHIPPED
-                && newStatus == OrderStatus.DELIVERED);
+                && newStatus == OrderStatus.DELIVERED)
+                || (currentStatus == OrderStatus.CREATED
+                && newStatus == OrderStatus.CANCELLED)
+                || (currentStatus == OrderStatus.PREPARING
+                && newStatus == OrderStatus.CANCELLED);
     }
 }
