@@ -71,6 +71,14 @@ public class OrderController {
         );
     }
 
+    /**
+     * Order status updates are administrative/operational actions.
+     *
+     * Normal users must not be allowed to change order status.
+     *
+     * TODO: When JWT authentication and role-based authorization are added,
+     * restrict this endpoint to ADMIN/OPERATIONS roles.
+     */
     @PatchMapping("/orders/{orderId}/status")
     public ResponseEntity<OrderResponse> updateStatus(
             @PathVariable Long orderId,
