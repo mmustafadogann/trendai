@@ -3,6 +3,7 @@ package com.trendai.trendai.controller;
 import com.trendai.trendai.dto.OrderResponse;
 import com.trendai.trendai.dto.UpdateOrderStatusRequest;
 import com.trendai.trendai.service.OrderService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -64,7 +65,7 @@ public class OrderController {
     @PatchMapping("/orders/{orderId}/status")
     public ResponseEntity<OrderResponse> updateStatus(
             @PathVariable Long orderId,
-            @RequestBody UpdateOrderStatusRequest request
+            @RequestBody @Valid UpdateOrderStatusRequest request
     ) {
         return ResponseEntity.ok(
                 orderService.updateStatus(orderId, request)

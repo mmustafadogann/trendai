@@ -53,4 +53,18 @@ class OrderControllerTest {
         verify(orderService)
                 .checkout(10L, 1L);
     }
+
+    @Test
+    void updateStatus_shouldReturn400WhenStatusIsMissing() throws Exception {
+
+        mockMvc.perform(
+                        org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .patch("/api/orders/10/status")
+                                .contentType("application/json")
+                                .content("{}")
+                )
+                .andExpect(status().isBadRequest());
+
+        org.mockito.Mockito.verifyNoInteractions(orderService);
+    }
 }
