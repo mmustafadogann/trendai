@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.time.LocalDateTime;
 
@@ -124,6 +125,22 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.CONFLICT.value(),
                 message,
+                LocalDateTime.now()
+        );
+
+        return new ResponseEntity<>(
+                errorResponse,
+                HttpStatus.CONFLICT
+        );
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
+            ObjectOptimisticLockingFailureException ex) {
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Product stock was changed by another transaction. Please try again.",
                 LocalDateTime.now()
         );
 
