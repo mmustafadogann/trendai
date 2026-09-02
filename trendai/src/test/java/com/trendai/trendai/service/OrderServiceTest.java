@@ -973,6 +973,15 @@ class OrderServiceTest {
                         5
                 );
 
+        // Kullanıcının var ve aktif olduğunu belirt
+        when(userRepository.findByIdAndActiveTrue(1L))
+                .thenReturn(Optional.of(user));
+
+        when(orderRepository.findAllByUserId(
+                eq(1L),
+                any(Pageable.class)
+        )).thenReturn(orderPage);
+
         OrderResponse response1 = new OrderResponse();
         response1.setId(50L);
         response1.setUserId(1L);
@@ -984,11 +993,6 @@ class OrderServiceTest {
         response2.setUserId(1L);
         response2.setStatus(OrderStatus.PREPARING);
         response2.setTotalAmount(new BigDecimal("200.00"));
-
-        when(orderRepository.findAllByUserId(
-                eq(1L),
-                any(Pageable.class)
-        )).thenReturn(orderPage);
 
         when(orderMapper.toResponse(order1))
                 .thenReturn(response1);
@@ -1022,6 +1026,9 @@ class OrderServiceTest {
                 result.getContent().get(1).getId()
         );
 
+        verify(userRepository)
+                .findByIdAndActiveTrue(1L);
+
         verify(orderRepository).findAllByUserId(
                 eq(1L),
                 any(Pageable.class)
@@ -1029,6 +1036,70 @@ class OrderServiceTest {
 
         verify(orderMapper).toResponse(order1);
         verify(orderMapper).toResponse(order2);
+    }
+
+    @Test
+    void testGetUserOrdersUserNotFound() {
+
+        when(userRepository.findByIdAndActiveTrue(999L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> orderService.getUserOrders(
+                        999L,
+                        PageRequest.of(0, 10)
+                )
+        );
+
+        assertEquals(
+                "User not found",
+                exception.getMessage()
+        );
+
+        verify(userRepository)
+                .findByIdAndActiveTrue(999L);
+
+        verify(orderRepository, never())
+                .findAllByUserId(
+                        eq(999L),
+                        any(Pageable.class)
+                );
+
+        verify(orderMapper, never())
+                .toResponse(any(Order.class));
+    }
+
+    @Test
+    void testGetUserOrdersInactiveUserNotFound() {
+
+        when(userRepository.findByIdAndActiveTrue(2L))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> orderService.getUserOrders(
+                        2L,
+                        PageRequest.of(0, 10)
+                )
+        );
+
+        assertEquals(
+                "User not found",
+                exception.getMessage()
+        );
+
+        verify(userRepository)
+                .findByIdAndActiveTrue(2L);
+
+        verify(orderRepository, never())
+                .findAllByUserId(
+                        eq(2L),
+                        any(Pageable.class)
+                );
+
+        verify(orderMapper, never())
+                .toResponse(any(Order.class));
     }
 
     @Test
