@@ -56,4 +56,27 @@ class AiAssistantServiceTest {
 
         verify(shoppingAssistant).chat("Merhaba");
     }
+
+    @Test
+    void shouldConvertToolExceptionToAiServiceException() {
+
+        when(shoppingAssistant.chat("Telefon öner"))
+                .thenThrow(new IllegalStateException("Tool execution failed"));
+
+        AiAssistantService service =
+                new AiAssistantService(shoppingAssistant);
+
+        AiServiceException exception = assertThrows(
+                AiServiceException.class,
+                () -> service.chat("Telefon öner")
+        );
+
+        assertEquals(
+                "AI servisine şu anda ulaşılamıyor.",
+                exception.getMessage()
+        );
+
+        verify(shoppingAssistant).chat("Telefon öner");
+    }
+
 }
