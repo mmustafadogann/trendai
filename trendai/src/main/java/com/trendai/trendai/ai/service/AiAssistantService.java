@@ -1,6 +1,8 @@
 package com.trendai.trendai.ai.service;
 
+import com.trendai.trendai.ai.tool.ProductSearchTool;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.service.AiServices;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -11,15 +13,27 @@ import org.springframework.stereotype.Service;
 )
 public class AiAssistantService {
 
-    private final ChatModel chatModel;
+    private final ShoppingAssistant shoppingAssistant;
 
-    public AiAssistantService(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public AiAssistantService(
+            ChatModel chatModel,
+            ProductSearchTool productSearchTool) {
+
+        this(
+                AiServices.builder(ShoppingAssistant.class)
+                        .chatModel(chatModel)
+                        .tools(productSearchTool)
+                        .build()
+        );
+    }
+
+    AiAssistantService(ShoppingAssistant shoppingAssistant) {
+        this.shoppingAssistant = shoppingAssistant;
     }
 
     public String chat(String message) {
         try {
-            return chatModel.chat(message);
+            return shoppingAssistant.chat(message);
         } catch (Exception e) {
             throw new AiServiceException(
                     "AI servisine şu anda ulaşılamıyor.",

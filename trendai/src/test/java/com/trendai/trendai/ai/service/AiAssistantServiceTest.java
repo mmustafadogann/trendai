@@ -1,6 +1,5 @@
 package com.trendai.trendai.ai.service;
 
-import dev.langchain4j.model.chat.ChatModel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -8,20 +7,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AiAssistantServiceTest {
 
     @Mock
-    private ChatModel chatModel;
+    private ShoppingAssistant shoppingAssistant;
 
     @Test
-    void shouldReturnModelResponse() {
-        when(chatModel.chat("Merhaba"))
+    void shouldReturnAssistantResponse() {
+
+        when(shoppingAssistant.chat("Merhaba"))
                 .thenReturn("Merhaba! Size nasıl yardımcı olabilirim?");
 
-        AiAssistantService service = new AiAssistantService(chatModel);
+        AiAssistantService service =
+                new AiAssistantService(shoppingAssistant);
 
         String result = service.chat("Merhaba");
 
@@ -30,15 +32,17 @@ class AiAssistantServiceTest {
                 result
         );
 
-        verify(chatModel).chat("Merhaba");
+        verify(shoppingAssistant).chat("Merhaba");
     }
 
     @Test
     void shouldConvertProviderExceptionToAiServiceException() {
-        when(chatModel.chat("Merhaba"))
+
+        when(shoppingAssistant.chat("Merhaba"))
                 .thenThrow(new RuntimeException("Provider error"));
 
-        AiAssistantService service = new AiAssistantService(chatModel);
+        AiAssistantService service =
+                new AiAssistantService(shoppingAssistant);
 
         AiServiceException exception = assertThrows(
                 AiServiceException.class,
@@ -50,6 +54,6 @@ class AiAssistantServiceTest {
                 exception.getMessage()
         );
 
-        verify(chatModel).chat("Merhaba");
+        verify(shoppingAssistant).chat("Merhaba");
     }
 }
