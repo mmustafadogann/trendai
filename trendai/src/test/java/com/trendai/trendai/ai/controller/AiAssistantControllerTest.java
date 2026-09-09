@@ -79,4 +79,20 @@ class AiAssistantControllerTest {
 
         verify(aiAssistantService).chat("Merhaba");
     }
+
+    @Test
+    void shouldRejectWhitespaceMessage() throws Exception {
+
+        mockMvc.perform(post("/api/assistant/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "message": "   "
+                            }
+                            """))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(aiAssistantService);
+    }
+
 }
