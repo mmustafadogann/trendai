@@ -57,6 +57,13 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- LangChain4j - OpenAI -->
+		<dependency>
+			<groupId>dev.langchain4j</groupId>
+			<artifactId>langchain4j-open-ai-spring-boot4-starter</artifactId>
+			<version>1.20.0-beta30</version>
+		</dependency>
+
 		<!-- JPA Tests -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
