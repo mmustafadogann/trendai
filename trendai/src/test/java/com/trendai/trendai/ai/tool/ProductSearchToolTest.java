@@ -497,4 +497,74 @@ class ProductSearchToolTest {
 
         return response;
     }
+
+    @Test
+    void shouldPassValidSortToProductService() {
+
+        ProductPageResponse pageResponse = createPageResponse();
+
+        when(productService.searchProducts(
+                0,
+                5,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "price,desc"
+        )).thenReturn(pageResponse);
+
+        productSearchTool.searchProducts(
+                null,
+                null,
+                null,
+                null,
+                null,
+                "price,desc",
+                5
+        );
+
+        verify(productService).searchProducts(
+                0,
+                5,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "price,desc"
+        );
+    }
+
+    @Test
+    void shouldRejectInvalidSort() {
+
+        when(productService.searchProducts(
+                0,
+                5,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "hack,desc"
+        )).thenThrow(
+                new com.trendai.trendai.exception.BadRequestException(
+                        "Invalid sort field"
+                )
+        );
+
+        assertThrows(
+                com.trendai.trendai.exception.BadRequestException.class,
+                () -> productSearchTool.searchProducts(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        "hack,desc",
+                        5
+                )
+        );
+    }
 }
