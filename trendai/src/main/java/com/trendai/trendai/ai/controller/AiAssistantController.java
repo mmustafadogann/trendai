@@ -30,10 +30,21 @@ public class AiAssistantController {
         try {
             String answer = aiAssistantService.chat(request.message());
 
-            return ResponseEntity.ok(new ChatResponse(answer));
+            return ResponseEntity.ok(
+                    new ChatResponse(
+                            answer,
+                            aiAssistantService.getMode()
+                    )
+            );
+
         } catch (AiServiceException e) {
             return ResponseEntity.internalServerError()
-                    .body(new ChatResponse(e.getMessage()));
+                    .body(
+                            new ChatResponse(
+                                    e.getMessage(),
+                                    "ERROR"
+                            )
+                    );
         }
     }
 }
