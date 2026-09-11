@@ -4,6 +4,8 @@ import com.trendai.trendai.ai.tool.ProductDetailsTool;
 import com.trendai.trendai.ai.tool.ProductSearchTool;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -15,28 +17,42 @@ import org.springframework.stereotype.Service;
 public class AiAssistantService {
 
     private final ShoppingAssistant shoppingAssistant;
+    private final AiDemoService aiDemoService;
+    private final boolean demoMode;
 
+    @Autowired
     public AiAssistantService(
             ChatModel chatModel,
             ProductSearchTool productSearchTool,
-            ProductDetailsTool productDetailsTool) {
+            ProductDetailsTool productDetailsTool,
+            AiDemoService aiDemoService,
+            @Value("${app.ai.demo-mode:false}") boolean demoMode) {
 
-        this(
+        this.shoppingAssistant =
                 AiServices.builder(ShoppingAssistant.class)
                         .chatModel(chatModel)
                         .tools(
                                 productSearchTool,
                                 productDetailsTool
                         )
-                        .build()
-        );
+                        .build();
+
+        this.aiDemoService = aiDemoService;
+        this.demoMode = demoMode;
     }
 
-    AiAssistantService(ShoppingAssistant shoppingAssistant) {
+    public AiAssistantService(ShoppingAssistant shoppingAssistant) {
         this.shoppingAssistant = shoppingAssistant;
+        this.aiDemoService = null;
+        this.demoMode = false;
     }
 
     public String chat(String message) {
+
+        if (demoMode) {
+            return aiDemoService.chat(message);
+        }
+
         try {
             return shoppingAssistant.chat(message);
         } catch (Exception e) {
@@ -45,5 +61,9 @@ public class AiAssistantService {
                     e
             );
         }
+    }
+
+    public String getMode() {
+        return demoMode ? "DEMO" : "LLM";
     }
 }
