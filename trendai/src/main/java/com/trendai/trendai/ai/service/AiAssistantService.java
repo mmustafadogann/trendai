@@ -1,6 +1,6 @@
 package com.trendai.trendai.ai.service;
 
-import com.trendai.trendai.ai.tool.CartTool;
+import com.trendai.trendai.ai.tool.ProductDetailsTool;
 import com.trendai.trendai.ai.tool.ProductSearchTool;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
@@ -19,14 +19,14 @@ public class AiAssistantService {
     public AiAssistantService(
             ChatModel chatModel,
             ProductSearchTool productSearchTool,
-            CartTool cartTool) {
+            ProductDetailsTool productDetailsTool) {
 
         this(
                 AiServices.builder(ShoppingAssistant.class)
                         .chatModel(chatModel)
                         .tools(
                                 productSearchTool,
-                                cartTool
+                                productDetailsTool
                         )
                         .build()
         );
